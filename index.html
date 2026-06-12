@@ -53,6 +53,26 @@
   .horoscope strong { color:#ffd166; }
   @keyframes fadeIn { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
 
+  /* Кнопки «Поделиться» */
+  .share { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+  .share-btn { flex:1; min-width:140px; padding:12px; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; background:rgba(255,255,255,.15); color:#fff; transition: transform .1s ease; }
+  .share-btn.vk { background:#4a76a8; color:#fff; }
+  .share-btn:active { transform: scale(.98); }
+
+  /* Футер со ссылкой на разработчика */
+  .footer { text-align:center; max-width:440px; margin:18px auto 0; font-size:13px; }
+  .footer a { color:#ffd166; opacity:.85; text-decoration:none; }
+  .footer a:hover { opacity:1; text-decoration:underline; }
+
+  /* Всплывашка-подтверждение */
+  .toast {
+    position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px);
+    background:#ffd166; color:#2b1055; padding:10px 18px; border-radius:10px;
+    font-weight:700; font-size:14px; opacity:0; pointer-events:none; transition:.3s; z-index:100;
+    max-width:90%; text-align:center;
+  }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
   /* Анимация ожидания */
   .loader { text-align:center; padding:26px 12px 18px; }
   .spinner { width:64px; height:64px; margin:0 auto; position:relative; }
@@ -97,13 +117,29 @@
     <div id="horoscope"></div>
     <button id="clearBtn" class="clear-btn">Очистить мои данные</button>
   </div>
+  <div class="footer">
+    <a id="devLink" href="https://t.me/bothub_founder" target="_blank" rel="noopener">Разработчик проекта 💬</a>
+  </div>
+  <div id="toast" class="toast"></div>
 <script>
   const bridge = window.vkBridge;
   if (bridge) {
     bridge.send('VKWebAppInit');
   }
 
+  const APP_LINK = 'https://vk.com/app54633941';
+  const DEV_LINK = 'https://t.me/bothub_founder';
   const fields = ['name','date','time','place','zodiac'];
+
+  // Ссылка на разработчика: внутри ВК открываем через мост, иначе обычной вкладкой
+  document.getElementById('devLink').addEventListener('click', (e) => {
+    if (bridge && bridge.isEmbedded && bridge.isEmbedded()) {
+      e.preventDefault();
+      bridge.send('VKWebAppOpenLink', { url: DEV_LINK }).catch(() => {
+        window.open(DEV_LINK, '_blank');
+      });
+    }
+  });
 
   // --- Таблица достоинств планет (классические 7 планет) ---
   const DIGNITY = {
@@ -126,6 +162,69 @@
     return '';
   }
 
+  // Всплывашка
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // Копирование с запасным вариантом
+  async function copyText(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch(e) {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      let ok = false;
+      try { ok = document.execCommand('copy'); } catch(_) {}
+      document.body.removeChild(ta);
+      return ok;
+    }
+  }
+
+  function horoscopeText() {
+    const el = document.querySelector('.horoscope');
+    return el ? el.innerText.trim() : '';
+  }
+
+  function sharePayload() {
+    return horoscopeText() + '\n\n🔮 Составлено в приложении «Астрель»: ' + APP_LINK;
+  }
+
+  function copyHoroscope() {
+    const text = horoscopeText();
+    if (!text) return;
+    copyText(sharePayload())
+      .then(ok => toast(ok ? 'Скопировано! 📋' : 'Не удалось скопировать 😔'));
+  }
+
+  // Поделиться в ВК: пост на стене с правильной проверкой окружения
+  function shareVK() {
+    const text = horoscopeText();
+    if (!text) return;
+    
+    // Проверяем, реально ли мы внутри ВК через встроенный метод моста
+    if (bridge && bridge.isEmbedded && bridge.isEmbedded()) {
+      bridge.send('VKWebAppShowWallPostBox', { message: sharePayload() })
+        .then(() => toast('Опубликовано в ВК! ✨'))
+        .catch((err) => {
+          console.log('Пользователь отменил или произошла ошибка:', err);
+          // Если не получилось (например, закрыли окно) — просто копируем
+          copyText(sharePayload())
+            .then(() => toast('Текст скопирован 📋'));
+        });
+    } else {
+      // Если мы открыты просто в браузере (не внутри приложения ВК)
+      copyText(sharePayload())
+        .then(ok => toast(ok ? 'Вне ВК доступно только копирование 📋' : 'Не удалось 😔'));
+    }
+  }
+
   // Готовый блок анимации ожидания
   function loaderHTML(text, emoji) {
     return `
@@ -142,7 +241,7 @@
         const d = JSON.parse(saved);
         fields.forEach(f => { if (d[f]) document.getElementById(f).value = d[f]; });
       } catch(e){}
-    } else if (bridge) {
+    } else if (bridge && bridge.isEmbedded && bridge.isEmbedded()) {
       bridge.send('VKWebAppGetUserInfo').then(u => {
         if (u && u.first_name) document.getElementById('name').value = u.first_name;
       }).catch(()=>{});
@@ -170,7 +269,14 @@
       if (!r.ok) throw new Error();
       const data = await r.json();
       if (data.error) throw new Error(data.error);
-      box.innerHTML = `<div class="horoscope">${data.horoscope}</div>`;
+      box.innerHTML = `
+        <div class="horoscope">${data.horoscope}</div>
+        <div class="share">
+          <button class="share-btn" id="copyBtn">📋 Скопировать</button>
+          <button class="share-btn vk" id="vkShareBtn">Поделиться в ВК</button>
+        </div>`;
+      document.getElementById('copyBtn').onclick = copyHoroscope;
+      document.getElementById('vkShareBtn').onclick = shareVK;
     } catch(e) {
       box.innerHTML = '<p class="muted">Не удалось составить гороскоп 😔 Попробуйте ещё раз.</p>';
     }
@@ -197,7 +303,7 @@
       const r = await fetch(url);
       if (!r.ok) throw new Error();
       const data = await r.json();
-      let html = `<div class="row asc"><span class="planet">Асцендент</span><span class="pos">${data.асцендент.знак} ${data.асцендent ? '' : ''}${data.асцендент.градус}°</span></div>`;
+      let html = `<div class="row asc"><span class="planet">Асцендент</span><span class="pos">${data.асцендент.знак} ${data.асцендент.градус}°</span></div>`;
       let hasBadge = false;
       for (const [planet, info] of Object.entries(data.планеты)) {
         const badge = dignityBadge(planet, info.знак);
