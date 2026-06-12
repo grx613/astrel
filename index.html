@@ -11,137 +11,99 @@
   h1 { text-align:center; margin:10px 0 4px; }
   .subtitle { text-align:center; opacity:.85; margin-bottom:20px; font-size:14px; }
   .card { background: rgba(255,255,255,.1); border-radius:16px; padding:20px; max-width:440px; margin:0 auto; }
+  .tabs { display:flex; gap:10px; margin-bottom:20px; }
+  .tab { flex:1; text-align:center; padding:12px; background:rgba(255,255,255,.1); border-radius:10px; cursor:pointer; font-weight:600; opacity:0.6; transition:.2s; font-size:14px; }
+  .tab.active { opacity:1; background:rgba(255,209,102,.2); color:#ffd166; border:1px solid rgba(255,209,102,.4); }
+  .partner-title { font-size:16px; font-weight:700; color:#ffd166; margin:10px 0; text-align:center; display:none; }
+  .partner2-fields { display:none; margin-top:20px; padding-top:20px; border-top:1px dashed rgba(255,255,255,.2); }
   label { display:block; margin:12px 0 4px; font-size:14px; opacity:.9; }
   input, select { width:100%; padding:12px; border:none; border-radius:10px; font-size:16px; }
-
-  /* Жёлтая кнопка, которая бросается в глаза */
-  button#btn {
-    width:100%; margin-top:20px; padding:16px; border:none; border-radius:12px;
-    background:#ffd166; color:#2b1055; font-size:17px; font-weight:800; cursor:pointer;
-    box-shadow:0 0 0 0 rgba(255,209,102,.7);
-    animation: btnPulse 1.8s ease-in-out infinite;
-    transition: transform .1s ease;
-  }
+  button#btn { width:100%; margin-top:20px; padding:16px; border:none; border-radius:12px; background:#ffd166; color:#2b1055; font-size:17px; font-weight:800; cursor:pointer; box-shadow:0 0 0 0 rgba(255,209,102,.7); animation: btnPulse 1.8s ease-in-out infinite; transition: transform .1s ease; }
   button#btn:active { transform: scale(.98); }
   button#btn:disabled { opacity:.6; animation:none; cursor:default; }
-  @keyframes btnPulse {
-    0%,100% { box-shadow:0 0 0 0 rgba(255,209,102,.55); }
-    50%     { box-shadow:0 0 22px 7px rgba(255,209,102,.55); }
-  }
-
-  .clear-btn { width:100%; background:transparent; color:#fff; opacity:.6; font-size:13px; font-weight:400; margin-top:10px; text-decoration:underline; border:none; cursor:pointer; }
-
+  @keyframes btnPulse { 0%,100% { box-shadow:0 0 0 0 rgba(255,209,102,.55); } 50% { box-shadow:0 0 22px 7px rgba(255,209,102,.55); } }
   .row { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px 14px; background:rgba(255,255,255,.08); border-radius:10px; margin-bottom:6px; }
   .row .planet { font-weight:600; }
   .row .pos { text-align:right; display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
   .asc { background:rgba(255,209,102,.25); }
-
-  /* Бейджи достоинств планет */
   .badge { font-size:11px; padding:2px 8px; border-radius:8px; white-space:nowrap; font-weight:600; }
   .badge.strong { background:rgba(255,209,102,.30); color:#ffd166; }
   .badge.weak   { background:rgba(255,140,140,.25); color:#ffb3b3; }
-
-  /* Подробная легенда — 4 строки */
-  .legend { font-size:12px; opacity:.85; margin:12px 0 0; line-height:1.55; text-align:left; }
-  .legend div { margin-bottom:4px; }
-  .legend b { color:#ffd166; font-weight:600; }
-
+  .cmp { width:100%; margin-bottom:6px; }
+  .cmp-head { display:flex; gap:6px; margin-bottom:8px; }
+  .cmp-head div { flex:1; text-align:center; font-weight:700; color:#ffd166; font-size:13px; padding:6px; background:rgba(255,209,102,.15); border-radius:8px; }
+  .cmp-row { display:flex; gap:6px; align-items:stretch; margin-bottom:6px; }
+  .cmp-cell { flex:1; background:rgba(255,255,255,.08); border-radius:8px; padding:8px 6px; text-align:center; font-size:13px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; }
+  .cmp-mid { flex:0 0 84px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; opacity:.85; }
+  .cmp-cell.asc { background:rgba(255,209,102,.22); }
   .muted { opacity:.75; font-size:13px; text-align:center; margin-top:10px; }
-
   .horoscope { background:rgba(255,255,255,.08); border-radius:10px; padding:16px; font-size:14px; line-height:1.55; margin-top:14px; animation: fadeIn .6s ease; }
   .horoscope p { margin:0 0 10px; }
+  .horoscope h3 { margin:15px 0 5px; color:#ffd166; font-size:16px; }
   .horoscope strong { color:#ffd166; }
   @keyframes fadeIn { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
-
-  /* Кнопки «Поделиться» */
   .share { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
   .share-btn { flex:1; min-width:140px; padding:12px; border:none; border-radius:10px; font-size:14px; font-weight:700; cursor:pointer; background:rgba(255,255,255,.15); color:#fff; transition: transform .1s ease; }
   .share-btn.vk { background:#4a76a8; color:#fff; }
   .share-btn:active { transform: scale(.98); }
-
-  /* Футер со ссылкой на разработчика */
-  .footer { text-align:center; max-width:440px; margin:18px auto 0; font-size:13px; }
-  .footer a { color:#ffd166; opacity:.85; text-decoration:none; }
-  .footer a:hover { opacity:1; text-decoration:underline; }
-
-  /* Всплывашка-подтверждение */
-  .toast {
-    position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px);
-    background:#ffd166; color:#2b1055; padding:10px 18px; border-radius:10px;
-    font-weight:700; font-size:14px; opacity:0; pointer-events:none; transition:.3s; z-index:100;
-    max-width:90%; text-align:center;
-  }
+  .clear-btn { width:100%; background:transparent; color:#fff; opacity:.6; font-size:13px; font-weight:400; margin-top:10px; text-decoration:underline; border:none; cursor:pointer; }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(20px); background:#ffd166; color:#2b1055; padding:10px 18px; border-radius:10px; font-weight:700; font-size:14px; opacity:0; pointer-events:none; transition:.3s; z-index:100; max-width:90%; text-align:center; }
   .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-
-  /* Анимация ожидания */
   .loader { text-align:center; padding:26px 12px 18px; }
   .spinner { width:64px; height:64px; margin:0 auto; position:relative; }
-  .spinner::before {
-    content:''; position:absolute; inset:0; border-radius:50%;
-    border:3px solid rgba(255,209,102,.22); border-top-color:#ffd166;
-    animation: spin 1s linear infinite;
-    box-shadow:0 0 16px rgba(255,209,102,.35);
-  }
-  .spinner .center {
-    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    font-size:26px; animation: pulse 1.6s ease-in-out infinite;
-  }
+  .spinner::before { content:''; position:absolute; inset:0; border-radius:50%; border:3px solid rgba(255,209,102,.22); border-top-color:#ffd166; animation: spin 1s linear infinite; }
+  .spinner .center { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:26px; animation: pulse 1.6s ease-in-out infinite; }
   @keyframes spin  { to { transform: rotate(360deg); } }
   @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.25);} }
   .loader .txt { margin-top:14px; font-size:15px; opacity:.95; }
-  .loader .dots span { animation: blink 1.4s infinite both; }
-  .loader .dots span:nth-child(2){ animation-delay:.2s; }
-  .loader .dots span:nth-child(3){ animation-delay:.4s; }
-  @keyframes blink { 0%,80%,100%{opacity:0;} 40%{opacity:1;} }
 </style>
 </head>
 <body>
   <h1>✨ Астрель</h1>
   <div class="subtitle">Астрология и гороскоп в одном месте</div>
   <div class="card">
-    <label>Имя</label>
-    <input id="name" placeholder="Ваше имя">
-    <label>Дата рождения</label>
-    <input id="date" type="date">
-    <label>Время рождения</label>
-    <input id="time" type="time">
-    <label>Место рождения</label>
-    <input id="place" placeholder="Москва">
+    <div class="tabs">
+      <div class="tab active" id="tab-horo">🔮 Личный гороскоп</div>
+      <div class="tab" id="tab-syn">❤️ Совместимость</div>
+    </div>
+    <div id="partner1-title" class="partner-title">Ваши данные</div>
+    <label>Имя</label> <input id="name" placeholder="Ваше имя">
+    <label>Дата рождения</label> <input id="date" type="date">
+    <label>Время рождения</label> <input id="time" type="time">
+    <label>Место рождения</label> <input id="place" placeholder="Москва">
+    <div id="partner2-fields" class="partner2-fields">
+      <div class="partner-title" style="display:block;">Данные партнёра</div>
+      <label>Имя партнёра</label> <input id="name2" placeholder="Имя партнёра">
+      <label>Дата рождения</label> <input id="date2" type="date">
+      <label>Время рождения</label> <input id="time2" type="time">
+      <label>Место рождения</label> <input id="place2" placeholder="Санкт-Петербург">
+    </div>
     <label>Система зодиака</label>
     <select id="zodiac">
       <option value="sidereal" selected>Сидерическая (ведическая)</option>
       <option value="tropical">Тропическая (западная)</option>
     </select>
-    <button id="btn">Построить карту и гороскоп 🔮</button>
+    <button id="btn">Построить гороскоп 🔮</button>
     <div id="result"></div>
     <div id="horoscope"></div>
-    <button id="clearBtn" class="clear-btn">Очистить мои данные</button>
-  </div>
-  <div class="footer">
-    <a id="devLink" href="https://t.me/bothub_founder" target="_blank" rel="noopener">Разработчик проекта 💬</a>
+    <button id="clearBtn" class="clear-btn">Очистить все данные</button>
   </div>
   <div id="toast" class="toast"></div>
 <script>
   const bridge = window.vkBridge;
-  if (bridge) {
-    bridge.send('VKWebAppInit');
-  }
-
+  if (bridge) { bridge.send('VKWebAppInit'); }
   const APP_LINK = 'https://vk.com/app54633941';
-  const DEV_LINK = 'https://t.me/bothub_founder';
-  const fields = ['name','date','time','place','zodiac'];
-
-  // Ссылка на разработчика: внутри ВК открываем через мост, иначе обычной вкладкой
-  document.getElementById('devLink').addEventListener('click', (e) => {
-    if (bridge && bridge.isEmbedded && bridge.isEmbedded()) {
-      e.preventDefault();
-      bridge.send('VKWebAppOpenLink', { url: DEV_LINK }).catch(() => {
-        window.open(DEV_LINK, '_blank');
-      });
-    }
-  });
-
-  // --- Таблица достоинств планет (классические 7 планет) ---
+  const fields = ['name','date','time','place','zodiac','name2','date2','time2','place2'];
+  function loadSaved() {
+    const saved = localStorage.getItem('astrel_user');
+    if (saved) { try { const d = JSON.parse(saved); fields.forEach(f => { if (d[f]) document.getElementById(f).value = d[f]; }); } catch(e){} }
+  }
+  function saveData() {
+    const d = {};
+    fields.forEach(f => { const el = document.getElementById(f); if (el) d[f] = el.value; });
+    localStorage.setItem('astrel_user', JSON.stringify(d));
+  }
+  loadSaved();
   const DIGNITY = {
     'Солнце':   { обитель:['Лев'],              экзальтация:'Овен',     падение:'Весы',     изгнание:['Водолей'] },
     'Луна':     { обитель:['Рак'],              экзальтация:'Телец',    падение:'Скорпион', изгнание:['Козерог'] },
@@ -151,194 +113,173 @@
     'Юпитер':   { обитель:['Стрелец','Рыбы'],   экзальтация:'Рак',      падение:'Козерог',  изгнание:['Близнецы','Дева'] },
     'Сатурн':   { обитель:['Козерог','Водолей'],экзальтация:'Весы',     падение:'Овен',     изгнание:['Рак','Лев'] },
   };
-
   function dignityBadge(planet, sign) {
     const d = DIGNITY[planet];
     if (!d) return '';
-    if (d.экзальтация === sign) return '<span class="badge strong">👑 экзальтация</span>';
-    if (d.обитель.includes(sign)) return '<span class="badge strong">🏠 обитель</span>';
-    if (d.падение === sign) return '<span class="badge weak">💔 падение</span>';
-    if (d.изгнание.includes(sign)) return '<span class="badge weak">🚪 изгнание</span>';
+    if (d.экзальтация === sign) return '<span class="badge strong">👑</span>';
+    if (d.обитель.includes(sign)) return '<span class="badge strong">🏠</span>';
+    if (d.падение === sign) return '<span class="badge weak">💔</span>';
+    if (d.изгнание.includes(sign)) return '<span class="badge weak">🚪</span>';
     return '';
   }
-
-  // Всплывашка
   function toast(msg) {
     const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+    t.textContent = msg; t.classList.add('show');
+    clearTimeout(t._timer); t._timer = setTimeout(() => t.classList.remove('show'), 2200);
   }
-
-  // Копирование с запасным вариантом
   async function copyText(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch(e) {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch(e) {
       const ta = document.createElement('textarea');
-      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
       document.body.appendChild(ta); ta.focus(); ta.select();
-      let ok = false;
-      try { ok = document.execCommand('copy'); } catch(_) {}
-      document.body.removeChild(ta);
-      return ok;
+      let ok=false; try { ok=document.execCommand('copy'); } catch(_){}
+      document.body.removeChild(ta); return ok;
     }
   }
-
   function horoscopeText() {
     const el = document.querySelector('.horoscope');
     return el ? el.innerText.trim() : '';
   }
-
   function sharePayload() {
     return horoscopeText() + '\n\n🔮 Составлено в приложении «Астрель»: ' + APP_LINK;
   }
-
   function copyHoroscope() {
-    const text = horoscopeText();
-    if (!text) return;
-    copyText(sharePayload())
-      .then(ok => toast(ok ? 'Скопировано! 📋' : 'Не удалось скопировать 😔'));
+    if (!horoscopeText()) return;
+    copyText(sharePayload()).then(ok => toast(ok ? 'Скопировано! 📋' : 'Не удалось скопировать 😔'));
   }
-
-  // Поделиться в ВК: пост на стене с правильной проверкой окружения
   function shareVK() {
-    const text = horoscopeText();
-    if (!text) return;
-    
-    // Проверяем, реально ли мы внутри ВК через встроенный метод моста
+    if (!horoscopeText()) return;
     if (bridge && bridge.isEmbedded && bridge.isEmbedded()) {
       bridge.send('VKWebAppShowWallPostBox', { message: sharePayload() })
         .then(() => toast('Опубликовано в ВК! ✨'))
-        .catch((err) => {
-          console.log('Пользователь отменил или произошла ошибка:', err);
-          // Если не получилось (например, закрыли окно) — просто копируем
-          copyText(sharePayload())
-            .then(() => toast('Текст скопирован 📋'));
-        });
+        .catch(() => copyText(sharePayload()).then(() => toast('Текст скопирован 📋')));
     } else {
-      // Если мы открыты просто в браузере (не внутри приложения ВК)
-      copyText(sharePayload())
-        .then(ok => toast(ok ? 'Вне ВК доступно только копирование 📋' : 'Не удалось 😔'));
+      copyText(sharePayload()).then(ok => toast(ok ? 'Вне ВК доступно только копирование 📋' : 'Не удалось 😔'));
     }
   }
-
-  // Готовый блок анимации ожидания
+  function shareButtons() {
+    return '<div class="share"><button class="share-btn" id="copyBtn">📋 Скопировать</button><button class="share-btn vk" id="vkShareBtn">Поделиться в ВК</button></div>';
+  }
+  function bindShare() {
+    const c = document.getElementById('copyBtn');
+    const v = document.getElementById('vkShareBtn');
+    if (c) c.onclick = copyHoroscope;
+    if (v) v.onclick = shareVK;
+  }
+  function singleTable(data) {
+    let html = '<div class="row asc"><span class="planet">Асцендент</span><span class="pos">' + data.асцендент.знак + ' ' + data.асцендент.градус + '°</span></div>';
+    for (const [planet, info] of Object.entries(data.планеты)) {
+      const badge = dignityBadge(planet, info.знак);
+      html += '<div class="row"><span class="planet">' + planet + '</span><span class="pos">' + info.знак + ' ' + info.градус + '°' + badge + '</span></div>';
+    }
+    html += '<p class="muted">' + data.место + '</p>';
+    return html;
+  }
+  function compareTable(n1, name1, n2, name2) {
+    let html = '<div class="cmp"><div class="cmp-head"><div>' + (name1 || 'Партнёр 1') + '</div><div></div><div>' + (name2 || 'Партнёр 2') + '</div></div>';
+    html += '<div class="cmp-row"><div class="cmp-cell asc">' + n1.асцендент.знак + '</div><div class="cmp-mid">Асцендент</div><div class="cmp-cell asc">' + n2.асцендент.знак + '</div></div>';
+    for (const planet of Object.keys(n1.планеты)) {
+      const s1 = n1.планеты[planet].знак;
+      const s2 = n2.планеты[planet].знак;
+      const b1 = dignityBadge(planet, s1);
+      const b2 = dignityBadge(planet, s2);
+      const same = (s1 === s2) ? ' style="color:#ffd166;font-weight:700;"' : '';
+      html += '<div class="cmp-row"><div class="cmp-cell">' + s1 + ' ' + b1 + '</div><div class="cmp-mid"' + same + '>' + planet + '</div><div class="cmp-cell">' + s2 + ' ' + b2 + '</div></div>';
+    }
+    html += '</div>';
+    return html;
+  }
   function loaderHTML(text, emoji) {
-    return `
-      <div class="loader">
-        <div class="spinner"><div class="center">${emoji}</div></div>
-        <div class="txt">${text}<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>
-      </div>`;
+    return '<div class="loader"><div class="spinner"><div class="center">' + emoji + '</div></div><div class="txt">' + text + '</div></div>';
   }
-
-  function loadSaved() {
-    const saved = localStorage.getItem('astrel_user');
-    if (saved) {
-      try {
-        const d = JSON.parse(saved);
-        fields.forEach(f => { if (d[f]) document.getElementById(f).value = d[f]; });
-      } catch(e){}
-    } else if (bridge && bridge.isEmbedded && bridge.isEmbedded()) {
-      bridge.send('VKWebAppGetUserInfo').then(u => {
-        if (u && u.first_name) document.getElementById('name').value = u.first_name;
-      }).catch(()=>{});
-    }
+  async function fetchNatal(date, time, place, zodiac) {
+    const r = await fetch('/natal?date=' + date + '&time=' + time + '&place=' + encodeURIComponent(place) + '&zodiac=' + zodiac);
+    if (!r.ok) throw new Error();
+    return await r.json();
   }
-
-  function saveData() {
-    const d = {};
-    fields.forEach(f => { d[f] = document.getElementById(f).value; });
-    localStorage.setItem('astrel_user', JSON.stringify(d));
-  }
-
-  loadSaved();
-
-  // Генерация гороскопа: шлём ВСЮ натальную карту через POST
-  async function loadHoroscope(name, natal) {
-    const box = document.getElementById('horoscope');
-    box.innerHTML = loaderHTML('Составляю твой гороскоп', '🔮');
-    try {
-      const r = await fetch('/horoscope', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name, natal: natal })
-      });
-      if (!r.ok) throw new Error();
-      const data = await r.json();
-      if (data.error) throw new Error(data.error);
-      box.innerHTML = `
-        <div class="horoscope">${data.horoscope}</div>
-        <div class="share">
-          <button class="share-btn" id="copyBtn">📋 Скопировать</button>
-          <button class="share-btn vk" id="vkShareBtn">Поделиться в ВК</button>
-        </div>`;
-      document.getElementById('copyBtn').onclick = copyHoroscope;
-      document.getElementById('vkShareBtn').onclick = shareVK;
-    } catch(e) {
-      box.innerHTML = '<p class="muted">Не удалось составить гороскоп 😔 Попробуйте ещё раз.</p>';
-    }
-  }
-
+  let mode = 'horo';
+  document.getElementById('tab-horo').onclick = () => {
+    mode = 'horo';
+    document.getElementById('tab-horo').classList.add('active');
+    document.getElementById('tab-syn').classList.remove('active');
+    document.getElementById('partner2-fields').style.display = 'none';
+    document.getElementById('partner1-title').style.display = 'none';
+    document.getElementById('btn').innerText = 'Построить гороскоп 🔮';
+    document.getElementById('result').innerHTML = '';
+    document.getElementById('horoscope').innerHTML = '';
+  };
+  document.getElementById('tab-syn').onclick = () => {
+    mode = 'syn';
+    document.getElementById('tab-syn').classList.add('active');
+    document.getElementById('tab-horo').classList.remove('active');
+    document.getElementById('partner2-fields').style.display = 'block';
+    document.getElementById('partner1-title').style.display = 'block';
+    document.getElementById('btn').innerText = 'Анализ совместимости ❤️';
+    document.getElementById('result').innerHTML = '';
+    document.getElementById('horoscope').innerHTML = '';
+  };
   const btn = document.getElementById('btn');
   btn.onclick = async () => {
-    const date = document.getElementById('date').value;
-    const time = document.getElementById('time').value;
-    const place = document.getElementById('place').value;
     const zodiac = document.getElementById('zodiac').value;
     const result = document.getElementById('result');
-    const horoscopeBox = document.getElementById('horoscope');
-    if (!date || !time || !place) {
-      result.innerHTML = '<p class="muted">Заполните дату, время и место 🙏</p>';
-      return;
-    }
-    saveData();
-    btn.disabled = true;
-    result.innerHTML = loaderHTML('Считаю звёзды', '🌌');
-    horoscopeBox.innerHTML = '';
+    const horoBox = document.getElementById('horoscope');
+    btn.disabled = true; horoBox.innerHTML = '';
     try {
-      const url = `/natal?date=${date}&time=${time}&place=${encodeURIComponent(place)}&zodiac=${zodiac}`;
-      const r = await fetch(url);
-      if (!r.ok) throw new Error();
-      const data = await r.json();
-      let html = `<div class="row asc"><span class="planet">Асцендент</span><span class="pos">${data.асцендент.знак} ${data.асцендент.градус}°</span></div>`;
-      let hasBadge = false;
-      for (const [planet, info] of Object.entries(data.планеты)) {
-        const badge = dignityBadge(planet, info.знак);
-        if (badge) hasBadge = true;
-        html += `<div class="row"><span class="planet">${planet}</span><span class="pos">${info.знак} ${info.градус}°${badge}</span></div>`;
+      if (mode === 'horo') {
+        const name = document.getElementById('name').value;
+        const date = document.getElementById('date').value;
+        const time = document.getElementById('time').value;
+        const place = document.getElementById('place').value;
+        if (!date || !time || !place) { result.innerHTML = '<p class="muted">Заполните данные 🙏</p>'; btn.disabled=false; return; }
+        saveData();
+        result.innerHTML = loaderHTML('Считаю звёзды', '🌌');
+        const natal = await fetchNatal(date, time, place, zodiac);
+        result.innerHTML = singleTable(natal);
+        horoBox.innerHTML = loaderHTML('Составляю твой гороскоп', '🔮');
+        const r = await fetch('/horoscope', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, natal }) });
+        const data = await r.json();
+        horoBox.innerHTML = '<div class="horoscope">' + data.horoscope + '</div>' + shareButtons();
+        bindShare();
+      } else {
+        const n1name = document.getElementById('name').value;
+        const d1 = document.getElementById('date').value;
+        const t1 = document.getElementById('time').value;
+        const p1 = document.getElementById('place').value;
+        const n2name = document.getElementById('name2').value;
+        const d2 = document.getElementById('date2').value;
+        const t2 = document.getElementById('time2').value;
+        const p2 = document.getElementById('place2').value;
+        if (!d1||!t1||!p1||!d2||!t2||!p2) { result.innerHTML = '<p class="muted">Заполните данные обоих партнёров 🙏</p>'; btn.disabled=false; return; }
+        saveData();
+        result.innerHTML = loaderHTML('Считаю карту первого партнёра', '🌌');
+        const natal1 = await fetchNatal(d1, t1, p1, zodiac);
+        result.innerHTML = loaderHTML('Считаю карту второго партнёра', '🌌');
+        await new Promise(res => setTimeout(res, 1200));
+        const natal2 = await fetchNatal(d2, t2, p2, zodiac);
+        result.innerHTML = compareTable(natal1, n1name, natal2, n2name);
+        horoBox.innerHTML = loaderHTML('Анализирую совместимость', '❤️');
+        const r = await fetch('/synastry', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name1:n1name, natal1, name2:n2name, natal2 }) });
+        const data = await r.json();
+        horoBox.innerHTML = '<div class="horoscope">' + data.synastry + '</div>' + shareButtons();
+        bindShare();
       }
-      if (hasBadge) {
-        html += `
-          <div class="legend">
-            <div><b>👑 Экзальтация</b> — планета на пике силы, её качества проявлены ярко и легко.</div>
-            <div><b>🏠 Обитель</b> — планета «у себя дома»: уверенная, надёжная опора характера.</div>
-            <div><b>💔 Падение</b> — планета ослаблена, её темы даются с трудом — это зона роста.</div>
-            <div><b>🚪 Изгнание</b> — планете некомфортно, тут внутреннее напряжение — есть над чем поработать.</div>
-          </div>`;
-      }
-      html += `<p class="muted">${data.место}</p>`;
-      result.innerHTML = html;
-      // Шлём всю карту в гороскоп
-      const userName = document.getElementById('name').value;
-      loadHoroscope(userName, data);
     } catch(e) {
-      result.innerHTML = '<p class="muted">Не получилось 😔 Проверьте место рождения.</p>';
+      result.innerHTML = '<p class="muted">Произошла ошибка 😔 Проверьте названия городов.</p>';
     } finally {
       btn.disabled = false;
     }
   };
-
   document.getElementById('clearBtn').onclick = () => {
     localStorage.removeItem('astrel_user');
     fields.forEach(f => {
       const el = document.getElementById(f);
+      if (!el) return;
       if (f === 'zodiac') el.value = 'sidereal'; else el.value = '';
     });
     document.getElementById('result').innerHTML = '';
     document.getElementById('horoscope').innerHTML = '';
+    toast('Данные очищены 🧹');
   };
 </script>
 </body>
