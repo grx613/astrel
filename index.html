@@ -29,6 +29,9 @@
   .badge { font-size:11px; padding:2px 8px; border-radius:8px; white-space:nowrap; font-weight:600; }
   .badge.strong { background:rgba(255,209,102,.30); color:#ffd166; }
   .badge.weak   { background:rgba(255,140,140,.25); color:#ffb3b3; }
+  .badge.tip { cursor:help; position:relative; }
+  .badge.tip::after { content:attr(data-tip); position:absolute; bottom:140%; right:0; width:210px; background:#1a0a3a; color:#fff; border:1px solid rgba(255,209,102,.45); padding:8px 10px; border-radius:8px; font-size:12px; font-weight:400; line-height:1.45; white-space:normal; text-align:left; opacity:0; pointer-events:none; transition:opacity .15s; z-index:60; box-shadow:0 6px 18px rgba(0,0,0,.45); }
+  .badge.tip:hover::after { opacity:1; }
   .cmp { width:100%; margin-bottom:6px; }
   .cmp-head { display:flex; gap:6px; margin-bottom:8px; }
   .cmp-head div { flex:1; text-align:center; font-weight:700; color:#ffd166; font-size:13px; padding:6px; background:rgba(255,209,102,.15); border-radius:8px; }
@@ -116,12 +119,13 @@
   function dignityBadge(planet, sign) {
     const d = DIGNITY[planet];
     if (!d) return '';
-    if (d.экзальтация === sign) return '<span class="badge strong">👑</span>';
-    if (d.обитель.includes(sign)) return '<span class="badge strong">🏠</span>';
-    if (d.падение === sign) return '<span class="badge weak">💔</span>';
-    if (d.изгнание.includes(sign)) return '<span class="badge weak">🚪</span>';
+    if (d.экзальтация === sign) return '<span class="badge strong tip" data-tip="👑 Экзальтация — планета в гостях у силы: проявляется ярко, на максимуме своих качеств.">👑</span>';
+    if (d.обитель.includes(sign)) return '<span class="badge strong tip" data-tip="🏠 Обитель — планета у себя дома: чувствует себя уверенно и свободно.">🏠</span>';
+    if (d.падение === sign) return '<span class="badge weak tip" data-tip="💔 Падение — планета ослаблена: её качества даются с трудом. Это зона роста.">💔</span>';
+    if (d.изгнание.includes(sign)) return '<span class="badge weak tip" data-tip="🚪 Изгнание — планета не в своей тарелке: действует через сопротивление.">🚪</span>';
     return '';
   }
+  document.addEventListener('click', function(e){ var _t = e.target.closest && e.target.closest('.badge.tip'); if (_t) toast(_t.getAttribute('data-tip')); });
   function toast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg; t.classList.add('show');
