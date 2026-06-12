@@ -1,3 +1,4 @@
+from tarot import get_tarot_reading
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -190,3 +191,10 @@ def relative_natal(relative_id: int, zodiac: str = "tropical", db: Session = Dep
     if rel is None:
         raise HTTPException(status_code=404, detail="Не найдено")
     return compute_natal(rel.birth_date, rel.birth_time, rel.birth_place, zodiac)
+
+@app.get("/tarot")
+async def tarot_reading(sun_sign: str):
+    if not sun_sign:
+        return {"error": "Не указан знак зодиака"}
+    result = await get_tarot_reading(sun_sign)
+    return result
