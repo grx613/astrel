@@ -1,4 +1,4 @@
-from tarot import get_tarot_reading
+from tarot import generate_horoscope
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -102,12 +102,23 @@ def compute_natal(date: str, time: str, place: str, zodiac: str = "tropical"):
         cusps, ascmc = swe.houses(jd, lat, lon, b'P')
     asc_sign, asc_deg = deg_to_sign(ascmc[0])
 
+    # --- Оба знака Солнца (для гороскопа) ---
+    # Тропический (без флага сидерики)
+    sun_trop, _ = swe.calc_ut(jd, swe.SUN, swe.FLG_MOSEPH)
+    sun_trop_sign, _ = deg_to_sign(sun_trop[0])
+    # Сидерический (Лахири)
+    swe.set_sid_mode(swe.SIDM_LAHIRI, 0, 0)
+    sun_sid, _ = swe.calc_ut(jd, swe.SUN, swe.FLG_MOSEPH | swe.FLG_SIDEREAL)
+    sun_sid_sign, _ = deg_to_sign(sun_sid[0])
+
     return {
         "место": location.address,
         "часовой_пояс": tzname,
         "зодиак": zodiac,
         "асцендент": {"знак": asc_sign, "градус": asc_deg},
         "планеты": planets,
+        "солнце_тропик": sun_trop_sign,
+        "солнце_сидерик": sun_sid_sign,
     }
 
 
@@ -192,9 +203,11 @@ def relative_natal(relative_id: int, zodiac: str = "tropical", db: Session = Dep
         raise HTTPException(status_code=404, detail="Не найдено")
     return compute_natal(rel.birth_date, rel.birth_time, rel.birth_place, zodiac)
 
-@app.get("/tarot")
-async def tarot_reading(sun_sign: str):
-    if not sun_sign:
-        return {"error": "Не указан знак зодиака"}
-    result = await get_tarot_reading(sun_sign)
-    return result
+
+@app.get("/horoscope")
+async def horoscope(tropical_sign: str, sidereal_sign: str):
+    """Гороскоп-прогноз через нейросеть на основе двух знаков Солнца."""
+    if not tropical_sign or not sidereal_sign:
+        return {"error": "Не указаны знаки зодиака"}
+    text = await generate_horoscope(tropical_sign, sidereal_sign)
+    return {"horoscope": text}
