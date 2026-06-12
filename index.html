@@ -30,8 +30,22 @@
   }
 
   .clear-btn { width:100%; background:transparent; color:#fff; opacity:.6; font-size:13px; font-weight:400; margin-top:10px; text-decoration:underline; border:none; cursor:pointer; }
-  .row { display:flex; justify-content:space-between; padding:10px 14px; background:rgba(255,255,255,.08); border-radius:10px; margin-bottom:6px; }
+
+  .row { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px 14px; background:rgba(255,255,255,.08); border-radius:10px; margin-bottom:6px; }
+  .row .planet { font-weight:600; }
+  .row .pos { text-align:right; display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
   .asc { background:rgba(255,209,102,.25); }
+
+  /* Бейджи достоинств планет */
+  .badge { font-size:11px; padding:2px 8px; border-radius:8px; white-space:nowrap; font-weight:600; }
+  .badge.strong { background:rgba(255,209,102,.30); color:#ffd166; }
+  .badge.weak   { background:rgba(255,140,140,.25); color:#ffb3b3; }
+
+  /* Подробная легенда — 4 строки */
+  .legend { font-size:12px; opacity:.85; margin:12px 0 0; line-height:1.55; text-align:left; }
+  .legend div { margin-bottom:4px; }
+  .legend b { color:#ffd166; font-weight:600; }
+
   .muted { opacity:.75; font-size:13px; text-align:center; margin-top:10px; }
 
   .horoscope { background:rgba(255,255,255,.08); border-radius:10px; padding:16px; font-size:14px; line-height:1.55; margin-top:14px; animation: fadeIn .6s ease; }
@@ -90,6 +104,27 @@
   }
 
   const fields = ['name','date','time','place','zodiac'];
+
+  // --- Таблица достоинств планет (классические 7 планет) ---
+  const DIGNITY = {
+    'Солнце':   { обитель:['Лев'],              экзальтация:'Овен',     падение:'Весы',     изгнание:['Водолей'] },
+    'Луна':     { обитель:['Рак'],              экзальтация:'Телец',    падение:'Скорпион', изгнание:['Козерог'] },
+    'Меркурий': { обитель:['Близнецы','Дева'],  экзальтация:'Дева',     падение:'Рыбы',     изгнание:['Стрелец','Рыбы'] },
+    'Венера':   { обитель:['Телец','Весы'],     экзальтация:'Рыбы',     падение:'Дева',     изгнание:['Овен','Скорпион'] },
+    'Марс':     { обитель:['Овен','Скорпион'],  экзальтация:'Козерог',  падение:'Рак',      изгнание:['Телец','Весы'] },
+    'Юпитер':   { обитель:['Стрелец','Рыбы'],   экзальтация:'Рак',      падение:'Козерог',  изгнание:['Близнецы','Дева'] },
+    'Сатурн':   { обитель:['Козерог','Водолей'],экзальтация:'Весы',     падение:'Овен',     изгнание:['Рак','Лев'] },
+  };
+
+  function dignityBadge(planet, sign) {
+    const d = DIGNITY[planet];
+    if (!d) return '';
+    if (d.экзальтация === sign) return '<span class="badge strong">👑 экзальтация</span>';
+    if (d.обитель.includes(sign)) return '<span class="badge strong">🏠 обитель</span>';
+    if (d.падение === sign) return '<span class="badge weak">💔 падение</span>';
+    if (d.изгнание.includes(sign)) return '<span class="badge weak">🚪 изгнание</span>';
+    return '';
+  }
 
   // Готовый блок анимации ожидания
   function loaderHTML(text, emoji) {
@@ -162,9 +197,21 @@
       const r = await fetch(url);
       if (!r.ok) throw new Error();
       const data = await r.json();
-      let html = `<div class="row asc"><b>Асцендент</b><span>${data.асцендент.знак} ${data.асцендент.градус}°</span></div>`;
+      let html = `<div class="row asc"><span class="planet">Асцендент</span><span class="pos">${data.асцендент.знак} ${data.асцендent ? '' : ''}${data.асцендент.градус}°</span></div>`;
+      let hasBadge = false;
       for (const [planet, info] of Object.entries(data.планеты)) {
-        html += `<div class="row"><span>${planet}</span><span>${info.знак} ${info.градус}°</span></div>`;
+        const badge = dignityBadge(planet, info.знак);
+        if (badge) hasBadge = true;
+        html += `<div class="row"><span class="planet">${planet}</span><span class="pos">${info.знак} ${info.градус}°${badge}</span></div>`;
+      }
+      if (hasBadge) {
+        html += `
+          <div class="legend">
+            <div><b>👑 Экзальтация</b> — планета на пике силы, её качества проявлены ярко и легко.</div>
+            <div><b>🏠 Обитель</b> — планета «у себя дома»: уверенная, надёжная опора характера.</div>
+            <div><b>💔 Падение</b> — планета ослаблена, её темы даются с трудом — это зона роста.</div>
+            <div><b>🚪 Изгнание</b> — планете некомфортно, тут внутреннее напряжение — есть над чем поработать.</div>
+          </div>`;
       }
       html += `<p class="muted">${data.место}</p>`;
       result.innerHTML = html;
