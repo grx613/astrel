@@ -205,9 +205,9 @@ def relative_natal(relative_id: int, zodiac: str = "tropical", db: Session = Dep
 
 
 @app.get("/horoscope")
-async def horoscope(tropical_sign: str, sidereal_sign: str):
-    """Гороскоп-прогноз через нейросеть на основе двух знаков Солнца."""
+async def horoscope(tropical_sign: str, sidereal_sign: str, name: str = ""):
+    """Гороскоп-прогноз через нейросеть на основе имени и двух знаков Солнца."""
     if not tropical_sign or not sidereal_sign:
         return {"error": "Не указаны знаки зодиака"}
-    text = await generate_horoscope(tropical_sign, sidereal_sign)
+    text = await generate_horoscope(name, tropical_sign, sidereal_sign)
     return {"horoscope": text}

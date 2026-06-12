@@ -79,11 +79,11 @@
   loadSaved();
 
   // Генерация гороскопа через нейросеть
-  async function loadHoroscope(tropSign, sidSign) {
+  async function loadHoroscope(name, tropSign, sidSign) {
     const box = document.getElementById('horoscope');
     box.innerHTML = '<p class="muted">Составляю ваш гороскоп… ✨</p>';
     try {
-      const url = `/horoscope?tropical_sign=${encodeURIComponent(tropSign)}&sidereal_sign=${encodeURIComponent(sidSign)}`;
+      const url = `/horoscope?name=${encodeURIComponent(name)}&tropical_sign=${encodeURIComponent(tropSign)}&sidereal_sign=${encodeURIComponent(sidSign)}`;
       const r = await fetch(url);
       if (!r.ok) throw new Error();
       const data = await r.json();
@@ -121,9 +121,10 @@
       }
       html += `<p class="muted">${data.место}</p>`;
       result.innerHTML = html;
-      // Сразу генерим гороскоп по двум знакам Солнца
+      // Сразу генерим гороскоп по имени и двум знакам Солнца
       if (data.солнце_тропик && data.солнце_сидерик) {
-        loadHoroscope(data.солнце_тропик, data.солнце_сидерик);
+        const userName = document.getElementById('name').value;
+        loadHoroscope(userName, data.солнце_тропик, data.солнце_сидерик);
       }
     } catch(e) {
       result.innerHTML = '<p class="muted">Не получилось 😔 Проверьте место рождения.</p>';
