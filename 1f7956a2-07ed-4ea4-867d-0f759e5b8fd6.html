@@ -1,0 +1,83 @@
+﻿﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Астрель</title>
+<script src="https://unpkg.com/@vkontakte/vk-bridge/dist/browser.min.js"></script>
+<style>
+  * { box-sizing: border-box; font-family: -apple-system, system-ui, sans-serif; }
+  body { margin:0; min-height:100vh; background: linear-gradient(160deg,#2b1055,#7597de); color:#fff; padding:20px; }
+  h1 { text-align:center; margin:10px 0 4px; }
+  .subtitle { text-align:center; opacity:.85; margin-bottom:20px; font-size:14px; }
+  .card { background: rgba(255,255,255,.1); border-radius:16px; padding:20px; max-width:440px; margin:0 auto; }
+  label { display:block; margin:12px 0 4px; font-size:14px; opacity:.9; }
+  input, select { width:100%; padding:12px; border:none; border-radius:10px; font-size:16px; }
+  button { width:100%; margin-top:20px; padding:14px; border:none; border-radius:10px; background:#ffd166; color:#2b1055; font-size:16px; font-weight:700; cursor:pointer; }
+  button:disabled { opacity:.6; }
+  .row { display:flex; justify-content:space-between; padding:10px 14px; background:rgba(255,255,255,.08); border-radius:10px; margin-bottom:6px; }
+  .asc { background:rgba(255,209,102,.25); }
+  .muted { opacity:.75; font-size:13px; text-align:center; margin-top:10px; }
+</style>
+</head>
+<body>
+  <h1>✨ Астрель</h1>
+  <div class="subtitle">Астрология и Таро в одном месте</div>
+  <div class="card">
+    <label>Имя</label>
+    <input id="name" placeholder="Ваше имя">
+    <label>Дата рождения</label>
+    <input id="date" type="date">
+    <label>Время рождения</label>
+    <input id="time" type="time">
+    <label>Место рождения</label>
+    <input id="place" placeholder="Москва">
+    <label>Система зодиака</label>
+    <select id="zodiac">
+      <option value="tropical">Тропическая (западная)</option>
+      <option value="sidereal">Сидерическая (ведическая)</option>
+    </select>
+    <button id="btn">Проверить натальную карту 🔮</button>
+    <div id="result"></div>
+  </div>
+<script>
+  const bridge = window.vkBridge;
+  if (bridge) {
+    bridge.send('VKWebAppInit');
+    bridge.send('VKWebAppGetUserInfo').then(u => {
+      if (u && u.first_name) document.getElementById('name').value = u.first_name;
+    }).catch(()=>{});
+  }
+  const btn = document.getElementById('btn');
+  btn.onclick = async () => {
+    const date = document.getElementById('date').value;
+    const time = document.getElementById('time').value;
+    const place = document.getElementById('place').value;
+    const zodiac = document.getElementById('zodiac').value;
+    const result = document.getElementById('result');
+    if (!date || !time || !place) {
+      result.innerHTML = '<p class="muted">Заполните дату, время и место 🙏</p>';
+      return;
+    }
+    btn.disabled = true;
+    result.innerHTML = '<p class="muted">Считаю звёзды… 🌌</p>';
+    try {
+      const url = `/natal?date=${date}&time=${time}&place=${encodeURIComponent(place)}&zodiac=${zodiac}`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error();
+      const data = await r.json();
+      let html = `<div class="row asc"><b>Асцендент</b><span>${data.асцендент.знак} ${data.асцендент.градус}°</span></div>`;
+      for (const [planet, info] of Object.entries(data.планеты)) {
+        html += `<div class="row"><span>${planet}</span><span>${info.знак} ${info.градус}°</span></div>`;
+      }
+      html += `<p class="muted">${data.место}</p>`;
+      result.innerHTML = html;
+    } catch(e) {
+      result.innerHTML = '<p class="muted">Не получилось 😔 Проверьте место рождения.</p>';
+    } finally {
+      btn.disabled = false;
+    }
+  };
+</script>
+</body>
+</html>
