@@ -13,15 +13,52 @@
   .card { background: rgba(255,255,255,.1); border-radius:16px; padding:20px; max-width:440px; margin:0 auto; }
   label { display:block; margin:12px 0 4px; font-size:14px; opacity:.9; }
   input, select { width:100%; padding:12px; border:none; border-radius:10px; font-size:16px; }
-  button { width:100%; margin-top:20px; padding:14px; border:none; border-radius:10px; background:#ffd166; color:#2b1055; font-size:16px; font-weight:700; cursor:pointer; }
-  button:disabled { opacity:.6; }
-  .clear-btn { background:transparent; color:#fff; opacity:.6; font-size:13px; font-weight:400; margin-top:10px; text-decoration:underline; }
+
+  /* Жёлтая кнопка, которая бросается в глаза */
+  button#btn {
+    width:100%; margin-top:20px; padding:16px; border:none; border-radius:12px;
+    background:#ffd166; color:#2b1055; font-size:17px; font-weight:800; cursor:pointer;
+    box-shadow:0 0 0 0 rgba(255,209,102,.7);
+    animation: btnPulse 1.8s ease-in-out infinite;
+    transition: transform .1s ease;
+  }
+  button#btn:active { transform: scale(.98); }
+  button#btn:disabled { opacity:.6; animation:none; cursor:default; }
+  @keyframes btnPulse {
+    0%,100% { box-shadow:0 0 0 0 rgba(255,209,102,.55); }
+    50%     { box-shadow:0 0 22px 7px rgba(255,209,102,.55); }
+  }
+
+  .clear-btn { width:100%; background:transparent; color:#fff; opacity:.6; font-size:13px; font-weight:400; margin-top:10px; text-decoration:underline; border:none; cursor:pointer; }
   .row { display:flex; justify-content:space-between; padding:10px 14px; background:rgba(255,255,255,.08); border-radius:10px; margin-bottom:6px; }
   .asc { background:rgba(255,209,102,.25); }
   .muted { opacity:.75; font-size:13px; text-align:center; margin-top:10px; }
-  .horoscope { background:rgba(255,255,255,.08); border-radius:10px; padding:16px; font-size:14px; line-height:1.55; margin-top:14px; }
+
+  .horoscope { background:rgba(255,255,255,.08); border-radius:10px; padding:16px; font-size:14px; line-height:1.55; margin-top:14px; animation: fadeIn .6s ease; }
   .horoscope p { margin:0 0 10px; }
   .horoscope strong { color:#ffd166; }
+  @keyframes fadeIn { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
+
+  /* Анимация ожидания */
+  .loader { text-align:center; padding:26px 12px 18px; }
+  .spinner { width:64px; height:64px; margin:0 auto; position:relative; }
+  .spinner::before {
+    content:''; position:absolute; inset:0; border-radius:50%;
+    border:3px solid rgba(255,209,102,.22); border-top-color:#ffd166;
+    animation: spin 1s linear infinite;
+    box-shadow:0 0 16px rgba(255,209,102,.35);
+  }
+  .spinner .center {
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:26px; animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes spin  { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.25);} }
+  .loader .txt { margin-top:14px; font-size:15px; opacity:.95; }
+  .loader .dots span { animation: blink 1.4s infinite both; }
+  .loader .dots span:nth-child(2){ animation-delay:.2s; }
+  .loader .dots span:nth-child(3){ animation-delay:.4s; }
+  @keyframes blink { 0%,80%,100%{opacity:0;} 40%{opacity:1;} }
 </style>
 </head>
 <body>
@@ -54,6 +91,15 @@
 
   const fields = ['name','date','time','place','zodiac'];
 
+  // Готовый блок анимации ожидания
+  function loaderHTML(text, emoji) {
+    return `
+      <div class="loader">
+        <div class="spinner"><div class="center">${emoji}</div></div>
+        <div class="txt">${text}<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>
+      </div>`;
+  }
+
   function loadSaved() {
     const saved = localStorage.getItem('astrel_user');
     if (saved) {
@@ -79,7 +125,7 @@
   // Генерация гороскопа: шлём ВСЮ натальную карту через POST
   async function loadHoroscope(name, natal) {
     const box = document.getElementById('horoscope');
-    box.innerHTML = '<p class="muted">Составляю ваш гороскоп… ✨</p>';
+    box.innerHTML = loaderHTML('Составляю твой гороскоп', '🔮');
     try {
       const r = await fetch('/horoscope', {
         method: 'POST',
@@ -109,7 +155,7 @@
     }
     saveData();
     btn.disabled = true;
-    result.innerHTML = '<p class="muted">Считаю звёзды… 🌌</p>';
+    result.innerHTML = loaderHTML('Считаю звёзды', '🌌');
     horoscopeBox.innerHTML = '';
     try {
       const url = `/natal?date=${date}&time=${time}&place=${encodeURIComponent(place)}&zodiac=${zodiac}`;
