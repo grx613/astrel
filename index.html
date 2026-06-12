@@ -15,9 +15,16 @@
   input, select { width:100%; padding:12px; border:none; border-radius:10px; font-size:16px; }
   button { width:100%; margin-top:20px; padding:14px; border:none; border-radius:10px; background:#ffd166; color:#2b1055; font-size:16px; font-weight:700; cursor:pointer; }
   button:disabled { opacity:.6; }
+  .tarot-btn { background:#c77dff; color:#fff; }
+  .clear-btn { background:transparent; color:#fff; opacity:.6; font-size:13px; font-weight:400; margin-top:10px; text-decoration:underline; }
   .row { display:flex; justify-content:space-between; padding:10px 14px; background:rgba(255,255,255,.08); border-radius:10px; margin-bottom:6px; }
   .asc { background:rgba(255,209,102,.25); }
   .muted { opacity:.75; font-size:13px; text-align:center; margin-top:10px; }
+  .tarot-cards { display:flex; gap:8px; margin:14px 0; }
+  .tarot-card { flex:1; text-align:center; padding:12px 6px; background:rgba(199,125,255,.25); border-radius:10px; font-size:13px; font-weight:700; }
+  .tarot-card span { display:block; font-size:11px; opacity:.7; font-weight:400; margin-bottom:4px; }
+  .tarot-reading { background:rgba(255,255,255,.08); border-radius:10px; padding:14px; font-size:14px; line-height:1.5; }
+  .tarot-reading b { color:#ffd166; }
 </style>
 </head>
 <body>
@@ -39,15 +46,45 @@
     </select>
     <button id="btn">Проверить натальную карту 🔮</button>
     <div id="result"></div>
+    <button id="tarotBtn" class="tarot-btn" style="display:none">Разложить Таро 🃏</button>
+    <div id="tarotResult"></div>
+    <button id="clearBtn" class="clear-btn">Очистить мои данные</button>
   </div>
 <script>
   const bridge = window.vkBridge;
   if (bridge) {
     bridge.send('VKWebAppInit');
-    bridge.send('VKWebAppGetUserInfo').then(u => {
-      if (u && u.first_name) document.getElementById('name').value = u.first_name;
-    }).catch(()=>{});
   }
+
+  const fields = ['name','date','time','place','zodiac'];
+
+  // Загружаем сохранённые данные при открытии
+  function loadSaved() {
+    const saved = localStorage.getItem('astrel_user');
+    if (saved) {
+      try {
+        const d = JSON.parse(saved);
+        fields.forEach(f => { if (d[f]) document.getElementById(f).value = d[f]; });
+      } catch(e){}
+    } else if (bridge) {
+      // если данных нет — подставим имя из профиля ВК
+      bridge.send('VKWebAppGetUserInfo').then(u => {
+        if (u && u.first_name) document.getElementById('name').value = u.first_name;
+      }).catch(()=>{});
+    }
+  }
+
+  // Сохраняем данные
+  function saveData() {
+    const d = {};
+    fields.forEach(f => { d[f] = document.getElementById(f).value; });
+    localStorage.setItem('astrel_user', JSON.stringify(d));
+  }
+
+  loadSaved();
+
+  let sunSign = null;
+
   const btn = document.getElementById('btn');
   btn.onclick = async () => {
     const date = document.getElementById('date').value;
@@ -55,12 +92,17 @@
     const place = document.getElementById('place').value;
     const zodiac = document.getElementById('zodiac').value;
     const result = document.getElementById('result');
+    const tarotBtn = document.getElementById('tarotBtn');
+    const tarotResult = document.getElementById('tarotResult');
     if (!date || !time || !place) {
       result.innerHTML = '<p class="muted">Заполните дату, время и место 🙏</p>';
       return;
     }
+    saveData(); // запоминаем введённое
     btn.disabled = true;
     result.innerHTML = '<p class="muted">Считаю звёзды… 🌌</p>';
+    tarotBtn.style.display = 'none';
+    tarotResult.innerHTML = '';
     try {
       const url = `/natal?date=${date}&time=${time}&place=${encodeURIComponent(place)}&zodiac=${zodiac}`;
       const r = await fetch(url);
@@ -72,11 +114,56 @@
       }
       html += `<p class="muted">${data.место}</p>`;
       result.innerHTML = html;
+      if (data.планеты && data.планеты['Солнце']) {
+        sunSign = data.планеты['Солнце'].знак;
+        tarotBtn.style.display = 'block';
+      }
     } catch(e) {
       result.innerHTML = '<p class="muted">Не получилось 😔 Проверьте место рождения.</p>';
     } finally {
       btn.disabled = false;
     }
+  };
+
+  const tarotBtn = document.getElementById('tarotBtn');
+  tarotBtn.onclick = async () => {
+    const tarotResult = document.getElementById('tarotResult');
+    if (!sunSign) {
+      tarotResult.innerHTML = '<p class="muted">Сначала постройте натальную карту 🙏</p>';
+      return;
+    }
+    tarotBtn.disabled = true;
+    tarotResult.innerHTML = '<p class="muted">Тасую колоду… 🃏✨</p>';
+    try {
+      const r = await fetch(`/tarot?sun_sign=${encodeURIComponent(sunSign)}`);
+      if (!r.ok) throw new Error();
+      const data = await r.json();
+      if (data.error) throw new Error(data.error);
+      let html = '<div class="tarot-cards">';
+      const labels = ['Прошлое', 'Настоящее', 'Будущее'];
+      data.cards.forEach((card, i) => {
+        html += `<div class="tarot-card"><span>${labels[i]}</span>${card}</div>`;
+      });
+      html += '</div>';
+      html += `<div class="tarot-reading">${data.reading}</div>`;
+      tarotResult.innerHTML = html;
+    } catch(e) {
+      tarotResult.innerHTML = '<p class="muted">Карты сегодня молчат 😔 Попробуйте ещё раз.</p>';
+    } finally {
+      tarotBtn.disabled = false;
+    }
+  };
+
+  // Кнопка очистки данных
+  document.getElementById('clearBtn').onclick = () => {
+    localStorage.removeItem('astrel_user');
+    fields.forEach(f => {
+      const el = document.getElementById(f);
+      if (f === 'zodiac') el.value = 'tropical'; else el.value = '';
+    });
+    document.getElementById('result').innerHTML = '';
+    document.getElementById('tarotResult').innerHTML = '';
+    document.getElementById('tarotBtn').style.display = 'none';
   };
 </script>
 </body>
