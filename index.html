@@ -54,7 +54,6 @@
 
   const fields = ['name','date','time','place','zodiac'];
 
-  // Загружаем сохранённые данные при открытии
   function loadSaved() {
     const saved = localStorage.getItem('astrel_user');
     if (saved) {
@@ -69,7 +68,6 @@
     }
   }
 
-  // Сохраняем данные
   function saveData() {
     const d = {};
     fields.forEach(f => { d[f] = document.getElementById(f).value; });
@@ -78,13 +76,16 @@
 
   loadSaved();
 
-  // Генерация гороскопа через нейросеть
-  async function loadHoroscope(name, tropSign, sidSign) {
+  // Генерация гороскопа: шлём ВСЮ натальную карту через POST
+  async function loadHoroscope(name, natal) {
     const box = document.getElementById('horoscope');
     box.innerHTML = '<p class="muted">Составляю ваш гороскоп… ✨</p>';
     try {
-      const url = `/horoscope?name=${encodeURIComponent(name)}&tropical_sign=${encodeURIComponent(tropSign)}&sidereal_sign=${encodeURIComponent(sidSign)}`;
-      const r = await fetch(url);
+      const r = await fetch('/horoscope', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, natal: natal })
+      });
       if (!r.ok) throw new Error();
       const data = await r.json();
       if (data.error) throw new Error(data.error);
@@ -121,11 +122,9 @@
       }
       html += `<p class="muted">${data.место}</p>`;
       result.innerHTML = html;
-      // Сразу генерим гороскоп по имени и двум знакам Солнца
-      if (data.солнце_тропик && data.солнце_сидерик) {
-        const userName = document.getElementById('name').value;
-        loadHoroscope(userName, data.солнце_тропик, data.солнце_сидерик);
-      }
+      // Шлём всю карту в гороскоп
+      const userName = document.getElementById('name').value;
+      loadHoroscope(userName, data);
     } catch(e) {
       result.innerHTML = '<p class="muted">Не получилось 😔 Проверьте место рождения.</p>';
     } finally {
@@ -133,7 +132,6 @@
     }
   };
 
-  // Кнопка очистки данных
   document.getElementById('clearBtn').onclick = () => {
     localStorage.removeItem('astrel_user');
     fields.forEach(f => {

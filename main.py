@@ -13,13 +13,10 @@ import swisseph as swe
 import models
 from database import engine, SessionLocal, Base
 
-# Создаём таблицы в базе при запуске (если их ещё нет)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Астрель API")
 
-# На время разработки разрешаем запросы отовсюду.
-# Перед публичным запуском сузить до своего домена.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,7 +25,6 @@ app.add_middleware(
 )
 
 
-# --- Подключение к базе на время запроса ---
 def get_db():
     db = SessionLocal()
     try:
@@ -37,7 +33,6 @@ def get_db():
         db.close()
 
 
-# --- Астрологическая часть ---
 SIGNS = ["Овен", "Телец", "Близнецы", "Рак", "Лев", "Дева",
          "Весы", "Скорпион", "Стрелец", "Козерог", "Водолей", "Рыбы"]
 
@@ -53,14 +48,12 @@ tf = TimezoneFinder()
 
 
 def deg_to_sign(deg):
-    """Градус на круге (0-360) -> знак зодиака и градус внутри знака."""
     deg = deg % 360
     index = int(deg // 30)
     return SIGNS[index], round(deg % 30, 2)
 
 
 def compute_natal(date: str, time: str, place: str, zodiac: str = "tropical"):
-    """Главная функция расчёта натальной карты."""
     # 1) Город -> координаты
     location = geolocator.geocode(place)
     if location is None:
@@ -75,15 +68,12 @@ def compute_natal(date: str, time: str, place: str, zodiac: str = "tropical"):
     # 3) Дата и время
     year, month, day = map(int, date.split("-"))
     hour, minute = map(int, time.split(":"))
-
-    # zoneinfo сам учтёт историческое летнее время
     dt = datetime(year, month, day, hour, minute, tzinfo=ZoneInfo(tzname))
     tz_offset = dt.utcoffset().total_seconds() / 3600
-
     ut_decimal = hour + minute / 60 - tz_offset
     jd = swe.julday(year, month, day, ut_decimal)
 
-    # MOSEPH = встроенный режим, не требует файлов эфемерид
+    # --- Карта для отображения (в выбранной системе) ---
     flag = swe.FLG_MOSEPH | swe.FLG_SPEED
     if zodiac == "sidereal":
         swe.set_sid_mode(swe.SIDM_LAHIRI, 0, 0)
@@ -95,21 +85,26 @@ def compute_natal(date: str, time: str, place: str, zodiac: str = "tropical"):
         sign, d = deg_to_sign(pos[0])
         planets[name] = {"знак": sign, "градус": d}
 
-    # Дома и асцендент (b'P' = система Плацидуса)
     if zodiac == "sidereal":
         cusps, ascmc = swe.houses_ex(jd, lat, lon, b'P', swe.FLG_SIDEREAL)
     else:
         cusps, ascmc = swe.houses(jd, lat, lon, b'P')
     asc_sign, asc_deg = deg_to_sign(ascmc[0])
 
-    # --- Оба знака Солнца (для гороскопа) ---
-    # Тропический (без флага сидерики)
+    # --- Полная СИДЕРИЧЕСКАЯ карта (всегда, для гороскопа) ---
+    swe.set_sid_mode(swe.SIDM_LAHIRI, 0, 0)
+    sid_flag = swe.FLG_MOSEPH | swe.FLG_SPEED | swe.FLG_SIDEREAL
+    sid_planets = {}
+    for name, code in PLANETS.items():
+        pos, _ = swe.calc_ut(jd, code, sid_flag)
+        s, d = deg_to_sign(pos[0])
+        sid_planets[name] = {"знак": s, "градус": d}
+    sid_cusps, sid_ascmc = swe.houses_ex(jd, lat, lon, b'P', swe.FLG_SIDEREAL)
+    sid_asc_sign, sid_asc_deg = deg_to_sign(sid_ascmc[0])
+
+    # --- Тропический знак Солнца (для вступления гороскопа) ---
     sun_trop, _ = swe.calc_ut(jd, swe.SUN, swe.FLG_MOSEPH)
     sun_trop_sign, _ = deg_to_sign(sun_trop[0])
-    # Сидерический (Лахири)
-    swe.set_sid_mode(swe.SIDM_LAHIRI, 0, 0)
-    sun_sid, _ = swe.calc_ut(jd, swe.SUN, swe.FLG_MOSEPH | swe.FLG_SIDEREAL)
-    sun_sid_sign, _ = deg_to_sign(sun_sid[0])
 
     return {
         "место": location.address,
@@ -118,11 +113,14 @@ def compute_natal(date: str, time: str, place: str, zodiac: str = "tropical"):
         "асцендент": {"знак": asc_sign, "градус": asc_deg},
         "планеты": planets,
         "солнце_тропик": sun_trop_sign,
-        "солнце_сидерик": sun_sid_sign,
+        "солнце_сидерик": sid_planets["Солнце"]["знак"],
+        "карта_сидерик": {
+            "асцендент": {"знак": sid_asc_sign, "градус": sid_asc_deg},
+            "планеты": sid_planets,
+        },
     }
 
 
-# --- Схемы входных данных ---
 class PersonIn(BaseModel):
     name: str
     birth_date: str
@@ -139,10 +137,13 @@ class RelativeIn(BaseModel):
     relation_type: str
 
 
-# --- Маршруты ---
+class HoroscopeIn(BaseModel):
+    name: str = ""
+    natal: dict
+
+
 @app.get("/")
 def index():
-    """Главная страница — форма (index.html)."""
     return FileResponse("index.html")
 
 
@@ -153,7 +154,6 @@ def health():
 
 @app.get("/natal")
 def natal_direct(date: str, time: str, place: str, zodiac: str = "tropical"):
-    """Прямой расчёт карты по введённым данным (для формы)."""
     return compute_natal(date, time, place, zodiac)
 
 
@@ -204,10 +204,11 @@ def relative_natal(relative_id: int, zodiac: str = "tropical", db: Session = Dep
     return compute_natal(rel.birth_date, rel.birth_time, rel.birth_place, zodiac)
 
 
-@app.get("/horoscope")
-async def horoscope(tropical_sign: str, sidereal_sign: str, name: str = ""):
-    """Гороскоп-прогноз через нейросеть на основе имени и двух знаков Солнца."""
-    if not tropical_sign or not sidereal_sign:
-        return {"error": "Не указаны знаки зодиака"}
-    text = await generate_horoscope(name, tropical_sign, sidereal_sign)
+@app.post("/horoscope")
+async def horoscope(payload: HoroscopeIn):
+    """Гороскоп по полной сидерической натальной карте."""
+    natal = payload.natal
+    if not natal or "карта_сидерик" not in natal:
+        return {"error": "Нет данных карты"}
+    text = await generate_horoscope(payload.name, natal)
     return {"horoscope": text}

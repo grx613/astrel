@@ -14,8 +14,7 @@ DEFAULT_MODEL = "gemini-3.1-flash-lite"
 
 
 def load_config():
-    """Читает модель и системный промпт из текстового файла.
-    Файл читается при КАЖДОМ вызове — правки применяются без перезапуска."""
+    """Читает модель и промпт из текстового файла при КАЖДОМ вызове."""
     with open(CONFIG_PATH, encoding="utf-8") as f:
         content = f.read()
     model = DEFAULT_MODEL
@@ -29,13 +28,31 @@ def load_config():
     return model, prompt
 
 
-async def generate_horoscope(name: str, tropical_sign: str, sidereal_sign: str) -> str:
+def format_chart(natal):
+    """Превращает сидерическую карту в читаемый список для модели."""
+    chart = natal.get("карта_сидерик", {})
+    asc = chart.get("асцендент", {})
+    planets = chart.get("планеты", {})
+    lines = []
+    if asc:
+        lines.append(f"Асцендент: {asc.get('знак')} {asc.get('градус')}°")
+    for name, info in planets.items():
+        lines.append(f"{name}: {info.get('знак')} {info.get('градус')}°")
+    return "\n".join(lines)
+
+
+async def generate_horoscope(name: str, natal: dict) -> str:
     model, system_prompt = load_config()
+    chart_text = format_chart(natal)
     user_message = (
         f"Имя пользователя: {name or 'друг'}.\n"
-        f"Знак Солнца по тропической (западной) системе: {tropical_sign}.\n"
-        f"Знак Солнца по сидерической (ведической) системе: {sidereal_sign}.\n"
-        f"Составь гороскоп строго по инструкции и обязательно обратись к пользователю по имени."
+        f"Знак Солнца по тропической (западной) системе: {natal.get('солнце_тропик', '')}.\n"
+        f"Знак Солнца по сидерической (ведической) системе: {natal.get('солнце_сидерик', '')}.\n\n"
+        f"ПОЛНАЯ НАТАЛЬНАЯ КАРТА (сидерическая, аянамша Лахири):\n"
+        f"{chart_text}\n\n"
+        f"Используй КОНКРЕТНЫЕ положения планет и асцендента из карты выше для "
+        f"обоснования КАЖДОГО вывода. В разных блоках опирайся на разные планеты. "
+        f"Составь гороскоп строго по инструкции."
     )
     response = await client.chat.completions.create(
         model=model,
