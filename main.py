@@ -123,11 +123,12 @@ def _lon(natal, key):
         return None
 
 _ASPECTS = [("соединение", 0, 8), ("секстиль", 60, 6), ("квадрат", 90, 7), ("трин", 120, 8), ("оппозиция", 180, 8)]
-_HARM = {"соединение": 0.8, "секстиль": 0.7, "трин": 1.0, "квадрат": -0.6, "оппозиция": -0.4}
+_HARM = {"соединение": 0.85, "секстиль": 0.65, "трин": 1.0, "квадрат": -0.9, "оппозиция": -0.7}
 _HARM_HOT = {"соединение": 0.9, "секстиль": 0.6, "трин": 0.6, "квадрат": 0.8, "оппозиция": 0.7}
 
 _CRITERIA = [
     ("Эмоции", "💗", [("Луна", "Луна"), ("Луна", "Венера"), ("Луна", "Солнце")], False, 1.2),
+    ("Любовь", "💞", [("Венера", "Марс"), ("Венера", "Венера"), ("Солнце", "Луна")], False, 1.2),
     ("Интеллект", "🧠", [("Меркурий", "Меркурий"), ("Меркурий", "асцендент"), ("Меркурий", "Юпитер")], False, 1.0),
     ("Секс", "🔥", [("Марс", "Венера"), ("Марс", "Марс"), ("Венера", "Плутон")], True, 1.0),
     ("Деньги", "💰", [("Венера", "Юпитер"), ("Юпитер", "Солнце"), ("Юпитер", "Сатурн")], False, 0.9),
@@ -163,7 +164,8 @@ def _pair_contrib(n1, n2, a, b, hot):
         contribs.append(c)
         if orb_factor > best_strength:
             best_strength, best_detail = orb_factor, (name, angle, c)
-    contrib = sum(contribs) / len(contribs) if contribs else 0.0
+    nz = [c for c in contribs if c != 0.0]
+    contrib = max(nz, key=abs) if nz else 0.0
     detail = None
     if best_detail:
         name, angle, c = best_detail
@@ -183,8 +185,11 @@ def synastry_scores(n1, n2):
             contribs.append(c)
             if d:
                 details.append(d)
-        avg = sum(contribs) / len(contribs) if contribs else 0.0
-        score = max(5, min(95, round(50 + avg * 45)))
+        ranked = sorted(contribs, key=abs, reverse=True)
+        rank_w = [1.0, 0.4, 0.15]
+        wsum = sum(rank_w[:len(ranked)]) or 1.0
+        agg = sum(w * c for w, c in zip(rank_w, ranked)) / wsum
+        score = max(3, min(97, round(50 + agg * 80)))
         out.append({"name": name, "emoji": emoji, "score": score, "details": details})
         total_s += score * weight
         total_w += weight
@@ -204,6 +209,13 @@ def synastry_scores(n1, n2):
 @app.post("/synastry")
 async def synastry(payload: SynastryIn):
     if not payload.natal1 or not payload.natal2: return {"error": "Нет данных карт"}
-    text = await generate_synastry(payload.name1, payload.natal1, payload.name2, payload.natal2)
     scores = synastry_scores(payload.natal1, payload.natal2)
+    text = await generate_synastry(payload.name1, payload.natal1, payload.name2, payload.natal2, scores)
     return {"synastry": text, "scores": scores}
+
+
+@app.post("/synastry/scores")
+async def synastry_scores_endpoint(payload: SynastryIn):
+    if not payload.natal1 or not payload.natal2:
+        return {"error": "Нет данных карт"}
+    return {"scores": synastry_scores(payload.natal1, payload.natal2)}
