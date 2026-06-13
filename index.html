@@ -331,6 +331,41 @@
     resetProfilePickers();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+  const CELEBS = [
+    // ⭐ Завидные женихи
+    { id:'putin', group:'m', name:'🐻 Владимир Путин', date:'1952-10-07', time:'12:00', place:'Санкт-Петербург', zodiac:'sidereal' },
+    { id:'trump', group:'m', name:'🇺🇸 Дональд Трамп', date:'1946-06-14', time:'10:54', place:'New York', zodiac:'sidereal' },
+    { id:'macron', group:'m', name:'🇫🇷 Эммануэль Макрон', date:'1977-12-21', time:'12:00', place:'Amiens, France', zodiac:'sidereal' },
+    { id:'shaman', group:'m', name:'🎤 SHAMAN', date:'1991-11-22', time:'12:00', place:'Новомосковск, Тульская область', zodiac:'sidereal' },
+    { id:'durov', group:'m', name:'📱 Павел Дуров', date:'1984-10-10', time:'12:00', place:'Санкт-Петербург', zodiac:'sidereal' },
+    { id:'musk', group:'m', name:'🚀 Илон Маск', date:'1971-06-28', time:'12:00', place:'Pretoria, South Africa', zodiac:'sidereal' },
+    { id:'lenin', group:'m', name:'☭ Владимир Ленин', date:'1870-04-22', time:'12:00', place:'Ульяновск', zodiac:'sidereal' },
+    { id:'stalin', group:'m', name:'🧊 Иосиф Сталин', date:'1878-12-18', time:'12:00', place:'Gori, Georgia', zodiac:'sidereal' },
+    { id:'peter1', group:'m', name:'👑 Пётр I', date:'1672-06-09', time:'12:00', place:'Москва', zodiac:'sidereal' },
+    { id:'panin', group:'m', name:'🐶 Алексей Панин', date:'1977-09-10', time:'12:00', place:'Москва', zodiac:'sidereal' },
+
+    // ⭐ Завидные невесты
+    { id:'klava', group:'f', name:'🎤 Клава Кока', date:'1996-07-23', time:'12:00', place:'Екатеринбург', zodiac:'sidereal' },
+    { id:'pugacheva', group:'f', name:'👑 Алла Пугачёва', date:'1949-04-15', time:'12:00', place:'Москва', zodiac:'sidereal' },
+    { id:'rotaru', group:'f', name:'🎶 София Ротару', date:'1947-08-07', time:'12:00', place:'Черновцы', zodiac:'sidereal' },
+    { id:'matvienko', group:'f', name:'🏛️ Валентина Матвиенко', date:'1949-04-07', time:'12:00', place:'Шепетовка', zodiac:'sidereal' },
+    { id:'buzova', group:'f', name:'💅 Ольга Бузова', date:'1986-01-20', time:'12:00', place:'Санкт-Петербург', zodiac:'sidereal' },
+    { id:'sobchak', group:'f', name:'🎙️ Ксения Собчак', date:'1981-11-05', time:'12:00', place:'Санкт-Петербург', zodiac:'sidereal' },
+    { id:'ivleeva', group:'f', name:'🍾 Настя Ивлеева', date:'1991-03-08', time:'12:00', place:'Санкт-Петербург', zodiac:'sidereal' },
+    { id:'karnaval', group:'f', name:'💃 Валя Карнавал', date:'2001-11-11', time:'12:00', place:'Ростов-на-Дону', zodiac:'sidereal' },
+    { id:'joan', group:'f', name:'⚔️ Жанна д’Арк', date:'1412-01-06', time:'12:00', place:'Domrémy-la-Pucelle, France', zodiac:'sidereal' },
+    { id:'catherine2', group:'f', name:'👑 Екатерина II', date:'1729-05-02', time:'12:00', place:'Szczecin, Poland', zodiac:'sidereal' }
+  ];
+
+  function getProfileItem(sig) {
+    if (sig && sig.indexOf('celeb:') === 0) {
+      const id = sig.slice(6);
+      const c = CELEBS.find(x => x.id === id);
+      if (c) return { data: c };
+    }
+    return readHoroCache()[sig];
+  }
+
   function profileList() {
     const c = readHoroCache();
     return Object.keys(c).sort((a,b) => (c[b].ts||0) - (c[a].ts||0)).map(k => {
@@ -344,12 +379,32 @@
       const sel = document.getElementById(id);
       if (!sel) return;
       let html = '<option value="">➕ Создать новый профиль</option>';
-      list.forEach(pr => { html += '<option value="' + encodeURIComponent(pr.sig) + '">' + escapeHtml(pr.label) + '</option>'; });
+
+      if (list.length) {
+        html += '<optgroup label="👤 Ваши профили">';
+        list.forEach(pr => {
+          html += '<option value="' + encodeURIComponent(pr.sig) + '">' + escapeHtml(pr.label) + '</option>';
+        });
+        html += '</optgroup>';
+      }
+
+      html += '<optgroup label="⭐ Завидные женихи">';
+      CELEBS.filter(c => c.group === 'm').forEach(c => {
+        html += '<option value="' + encodeURIComponent('celeb:' + c.id) + '">' + escapeHtml(c.name) + '</option>';
+      });
+      html += '</optgroup>';
+
+      html += '<optgroup label="⭐ Завидные невесты">';
+      CELEBS.filter(c => c.group === 'f').forEach(c => {
+        html += '<option value="' + encodeURIComponent('celeb:' + c.id) + '">' + escapeHtml(c.name) + '</option>';
+      });
+      html += '</optgroup>';
+
       sel.innerHTML = html;
     });
   }
   function applyProfile(which, sig) {
-    const it = readHoroCache()[sig];
+    const it = getProfileItem(sig);
     if (!it || !it.data) return;
     const m = which === 1 ? ['name','date','time','place'] : ['name2','date2','time2','place2'];
     document.getElementById(m[0]).value = it.data.name || '';
@@ -513,7 +568,10 @@
         await new Promise(res => setTimeout(res, 1200));
         const natal2 = await fetchNatal(d2, t2, p2, zodiac);
         result.innerHTML = compareTable(natal1, n1name, natal2, n2name);
-        horoBox.innerHTML = loaderHTML('Анализирую совместимость', '❤️');
+        horoBox.innerHTML = loaderHTML('Считаю совместимость', '💞');
+        const sr = await fetch('/synastry/scores', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name1:n1name, natal1, name2:n2name, natal2 }) });
+        const sdata = await sr.json();
+        horoBox.innerHTML = scoresHTML(sdata.scores) + loaderHTML('Пишу разбор совместимости', '❤️');
         const r = await fetch('/synastry', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name1:n1name, natal1, name2:n2name, natal2 }) });
         const data = await r.json();
         horoBox.innerHTML = scoresHTML(data.scores) + '<div class="horoscope">' + data.synastry + '</div>' + shareButtons();
