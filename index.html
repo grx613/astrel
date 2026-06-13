@@ -59,6 +59,11 @@
   @keyframes spin  { to { transform: rotate(360deg); } }
   @keyframes pulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.25);} }
   .loader .txt { margin-top:14px; font-size:15px; opacity:.95; }
+  .history { margin-top:16px; }
+  .hist-title { font-size:13px; opacity:.8; margin-bottom:8px; }
+  .hist-list { display:flex; flex-wrap:wrap; gap:8px; }
+  .hist-item { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,209,102,.3); border-radius:16px; padding:6px 12px; font-size:13px; cursor:pointer; transition:.15s; }
+  .hist-item:hover { background:rgba(255,209,102,.25); color:#ffd166; }
 </style>
 </head>
 <body>
@@ -70,16 +75,26 @@
       <div class="tab" id="tab-syn">❤️ Совместимость</div>
     </div>
     <div id="partner1-title" class="partner-title">Ваши данные</div>
+    <div id="prof1-wrap">
+      <label>Профиль</label>
+      <select id="prof1"><option value="">➕ Создать новый профиль</option></select>
+    </div>
+    <div id="fields1">
     <label>Имя</label> <input id="name" placeholder="Ваше имя">
     <label>Дата рождения</label> <input id="date" type="date">
     <label>Время рождения</label> <input id="time" type="time">
     <label>Место рождения</label> <input id="place" placeholder="Москва">
+    </div>
     <div id="partner2-fields" class="partner2-fields">
       <div class="partner-title" style="display:block;">Данные партнёра</div>
+      <label>Профиль</label>
+      <select id="prof2"><option value="">➕ Создать новый профиль</option></select>
+      <div id="fields2">
       <label>Имя партнёра</label> <input id="name2" placeholder="Имя партнёра">
       <label>Дата рождения</label> <input id="date2" type="date">
       <label>Время рождения</label> <input id="time2" type="time">
       <label>Место рождения</label> <input id="place2" placeholder="Санкт-Петербург">
+      </div>
     </div>
     <label>Система зодиака</label>
     <select id="zodiac">
@@ -89,7 +104,12 @@
     <button id="btn">Построить гороскоп 🔮</button>
     <div id="result"></div>
     <div id="horoscope"></div>
-    <button id="clearBtn" class="clear-btn">Очистить все данные</button>
+    <button id="clearBtn" class="clear-btn">🧹 Очистить поля</button>
+    <div id="history" class="history"></div>
+    <div id="synHistory" class="history"></div>
+    <!-- DEV-RESET START (временная кнопка для тестов — удалить перед релизом) -->
+    <button id="devReset" class="clear-btn" style="margin-top:8px;background:rgba(255,80,80,.25);border:1px solid rgba(255,120,120,.5);">🧪 Сброс истории и кэша (тест)</button>
+    <!-- DEV-RESET END -->
   </div>
   <div id="toast" class="toast"></div>
 <script>
@@ -126,6 +146,12 @@
     return '';
   }
   document.addEventListener('click', function(e){ var _t = e.target.closest && e.target.closest('.badge.tip'); if (_t) toast(_t.getAttribute('data-tip')); });
+  document.addEventListener('click', function(e){
+    var _h = e.target.closest && e.target.closest('.hist-item');
+    if (!_h) return;
+    if (_h.hasAttribute('data-syn')) loadSynFromHistory(decodeURIComponent(_h.getAttribute('data-syn')));
+    else if (_h.hasAttribute('data-sig')) loadFromHistory(decodeURIComponent(_h.getAttribute('data-sig')));
+  });
   function toast(msg) {
     const t = document.getElementById('toast');
     t.textContent = msg; t.classList.add('show');
@@ -140,6 +166,186 @@
       let ok=false; try { ok=document.execCommand('copy'); } catch(_){}
       document.body.removeChild(ta); return ok;
     }
+  }
+  function refreshBtnHTML() {
+    return '<button class="clear-btn" onclick="refreshHoroscope()" style="margin-top:12px;">🔄 Обновить гороскоп</button>';
+  }
+  const HORO_DAY = 24*60*60*1000;
+  function horoSig() {
+    return [
+      document.getElementById('date').value,
+      document.getElementById('time').value,
+      (document.getElementById('place').value || '').trim().toLowerCase(),
+      document.getElementById('zodiac').value
+    ].join('|');
+  }
+  function readHoroCache() {
+    try { return JSON.parse(localStorage.getItem('astrel_horo_cache')) || {}; } catch(e) { return {}; }
+  }
+  function getCachedHoro(sig) {
+    const item = readHoroCache()[sig];
+    return (item && item.horoscope) ? item : null;
+  }
+  function cacheHoroscope() {
+    const c = readHoroCache();
+    c[horoSig()] = {
+      result: document.getElementById('result').innerHTML,
+      horoscope: document.getElementById('horoscope').innerHTML,
+      data: {
+        name: document.getElementById('name').value,
+        date: document.getElementById('date').value,
+        time: document.getElementById('time').value,
+        place: document.getElementById('place').value,
+        zodiac: document.getElementById('zodiac').value
+      },
+      ts: Date.now()
+    };
+    const keys = Object.keys(c).sort((a,b) => (c[a].ts||0) - (c[b].ts||0));
+    while (keys.length > 15) { delete c[keys.shift()]; }
+    try { localStorage.setItem('astrel_horo_cache', JSON.stringify(c)); } catch(e) {}
+    renderHistory();
+    populateProfiles();
+  }
+  function restoreHoroscope() {
+    if (mode !== 'horo') return;
+    const item = getCachedHoro(horoSig());
+    if (!item) return;
+    document.getElementById('result').innerHTML = item.result || '';
+    document.getElementById('horoscope').innerHTML = item.horoscope;
+    if (typeof bindShare === 'function') bindShare();
+  }
+  function refreshHoroscope() {
+    btn.click();
+  }
+  function escapeHtml(t) {
+    return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function renderHistory() {
+    const box = document.getElementById('history');
+    if (!box) return;
+    if (mode !== 'horo') { box.innerHTML = ''; return; }
+    const c = readHoroCache();
+    const keys = Object.keys(c).sort((a,b) => (c[b].ts||0) - (c[a].ts||0));
+    if (!keys.length) { box.innerHTML = ''; return; }
+    let html = '<div class="hist-title">🕘 История</div><div class="hist-list">';
+    keys.forEach(k => {
+      const d = (c[k] && c[k].data) || {};
+      const label = d.name && d.name.trim() ? d.name.trim() : (d.date || 'Без имени');
+      html += '<button class="hist-item" data-sig="' + encodeURIComponent(k) + '">' + escapeHtml(label) + '</button>';
+    });
+    html += '</div>';
+    box.innerHTML = html;
+  }
+  function loadFromHistory(sig) {
+    const it = readHoroCache()[sig];
+    if (!it) return;
+    if (it.data) {
+      ['name','date','time','place','zodiac'].forEach(f => {
+        const el = document.getElementById(f);
+        if (el && it.data[f] != null) el.value = it.data[f];
+      });
+      saveData();
+    }
+    document.getElementById('result').innerHTML = it.result || '';
+    document.getElementById('horoscope').innerHTML = it.horoscope || '';
+    if (typeof bindShare === 'function') bindShare();
+    resetProfilePickers();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function personSig(d, t, pl, z) {
+    return [d, t, (pl||'').trim().toLowerCase(), z].join('|');
+  }
+  function readSynCache() {
+    try { return JSON.parse(localStorage.getItem('astrel_syn_cache')) || {}; } catch(e) { return {}; }
+  }
+  function cacheSynastry() {
+    const g = id => document.getElementById(id).value;
+    const z = g('zodiac');
+    const sig = personSig(g('date'),g('time'),g('place'),z) + '~~' + personSig(g('date2'),g('time2'),g('place2'),z);
+    const c = readSynCache();
+    c[sig] = {
+      result: document.getElementById('result').innerHTML,
+      horoscope: document.getElementById('horoscope').innerHTML,
+      data: { name:g('name'),date:g('date'),time:g('time'),place:g('place'),
+              name2:g('name2'),date2:g('date2'),time2:g('time2'),place2:g('place2'),zodiac:z },
+      ts: Date.now()
+    };
+    const keys = Object.keys(c).sort((a,b) => (c[a].ts||0) - (c[b].ts||0));
+    while (keys.length > 15) { delete c[keys.shift()]; }
+    try { localStorage.setItem('astrel_syn_cache', JSON.stringify(c)); } catch(e) {}
+    renderSynHistory();
+  }
+  function renderSynHistory() {
+    const box = document.getElementById('synHistory');
+    if (!box) return;
+    if (mode !== 'syn') { box.innerHTML = ''; return; }
+    const c = readSynCache();
+    const keys = Object.keys(c).sort((a,b) => (c[b].ts||0) - (c[a].ts||0));
+    if (!keys.length) { box.innerHTML = ''; return; }
+    let html = '<div class="hist-title">🕘 История пар</div><div class="hist-list">';
+    keys.forEach(k => {
+      const d = (c[k] && c[k].data) || {};
+      const n1 = (d.name && d.name.trim()) || d.date || '?';
+      const n2 = (d.name2 && d.name2.trim()) || d.date2 || '?';
+      html += '<button class="hist-item" data-syn="' + encodeURIComponent(k) + '">' + escapeHtml(n1) + ' + ' + escapeHtml(n2) + '</button>';
+    });
+    html += '</div>';
+    box.innerHTML = html;
+  }
+  function loadSynFromHistory(sig) {
+    const it = readSynCache()[sig];
+    if (!it) return;
+    if (it.data) {
+      ['name','date','time','place','name2','date2','time2','place2','zodiac'].forEach(f => {
+        const el = document.getElementById(f);
+        if (el && it.data[f] != null) el.value = it.data[f];
+      });
+      saveData();
+    }
+    document.getElementById('result').innerHTML = it.result || '';
+    document.getElementById('horoscope').innerHTML = it.horoscope || '';
+    if (typeof bindShare === 'function') bindShare();
+    resetProfilePickers();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  function profileList() {
+    const c = readHoroCache();
+    return Object.keys(c).sort((a,b) => (c[b].ts||0) - (c[a].ts||0)).map(k => {
+      const d = (c[k] && c[k].data) || {};
+      return { sig:k, label: (d.name && d.name.trim()) || d.date || 'Без имени' };
+    });
+  }
+  function populateProfiles() {
+    const list = profileList();
+    ['prof1','prof2'].forEach(id => {
+      const sel = document.getElementById(id);
+      if (!sel) return;
+      let html = '<option value="">➕ Создать новый профиль</option>';
+      list.forEach(pr => { html += '<option value="' + encodeURIComponent(pr.sig) + '">' + escapeHtml(pr.label) + '</option>'; });
+      sel.innerHTML = html;
+    });
+  }
+  function applyProfile(which, sig) {
+    const it = readHoroCache()[sig];
+    if (!it || !it.data) return;
+    const m = which === 1 ? ['name','date','time','place'] : ['name2','date2','time2','place2'];
+    document.getElementById(m[0]).value = it.data.name || '';
+    document.getElementById(m[1]).value = it.data.date || '';
+    document.getElementById(m[2]).value = it.data.time || '';
+    document.getElementById(m[3]).value = it.data.place || '';
+    const z = document.getElementById('zodiac'); if (z && it.data.zodiac) z.value = it.data.zodiac;
+    saveData();
+  }
+  function toggleFields(which, hide) {
+    const el = document.getElementById('fields' + which);
+    if (el) el.style.display = hide ? 'none' : '';
+  }
+  function resetProfilePickers() {
+    ['1','2'].forEach(n => {
+      const sel = document.getElementById('prof' + n);
+      if (sel) sel.value = '';
+      toggleFields(n, false);
+    });
   }
   function horoscopeText() {
     const el = document.querySelector('.horoscope');
@@ -209,9 +415,15 @@
     document.getElementById('tab-syn').classList.remove('active');
     document.getElementById('partner2-fields').style.display = 'none';
     document.getElementById('partner1-title').style.display = 'none';
+    document.getElementById('prof1-wrap').style.display = 'block';
     document.getElementById('btn').innerText = 'Построить гороскоп 🔮';
     document.getElementById('result').innerHTML = '';
     document.getElementById('horoscope').innerHTML = '';
+    restoreHoroscope();
+    renderHistory();
+    renderSynHistory();
+    populateProfiles();
+    resetProfilePickers();
   };
   document.getElementById('tab-syn').onclick = () => {
     mode = 'syn';
@@ -219,9 +431,14 @@
     document.getElementById('tab-horo').classList.remove('active');
     document.getElementById('partner2-fields').style.display = 'block';
     document.getElementById('partner1-title').style.display = 'block';
+    document.getElementById('prof1-wrap').style.display = 'block';
     document.getElementById('btn').innerText = 'Анализ совместимости ❤️';
     document.getElementById('result').innerHTML = '';
     document.getElementById('horoscope').innerHTML = '';
+    renderHistory();
+    populateProfiles();
+    renderSynHistory();
+    resetProfilePickers();
   };
   const btn = document.getElementById('btn');
   btn.onclick = async () => {
@@ -231,6 +448,16 @@
     btn.disabled = true; horoBox.innerHTML = '';
     try {
       if (mode === 'horo') {
+        const sig = horoSig();
+        const cached = getCachedHoro(sig);
+        if (cached && (Date.now() - cached.ts) < HORO_DAY) {
+          document.getElementById('result').innerHTML = cached.result || '';
+          horoBox.innerHTML = cached.horoscope;
+          if (typeof bindShare === 'function') bindShare();
+          const h = Math.max(1, Math.ceil((HORO_DAY - (Date.now() - cached.ts)) / 3600000));
+          toast('Этот гороскоп уже посчитан 🌙 Обновится через ~' + h + ' ч');
+          return;
+        }
         const name = document.getElementById('name').value;
         const date = document.getElementById('date').value;
         const time = document.getElementById('time').value;
@@ -243,8 +470,9 @@
         horoBox.innerHTML = loaderHTML('Составляю твой гороскоп', '🔮');
         const r = await fetch('/horoscope', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, natal }) });
         const data = await r.json();
-        horoBox.innerHTML = '<div class="horoscope">' + data.horoscope + '</div>' + shareButtons();
+        horoBox.innerHTML = '<div class="horoscope">' + data.horoscope + '</div>' + shareButtons() + refreshBtnHTML();
         bindShare();
+        cacheHoroscope();
       } else {
         const n1name = document.getElementById('name').value;
         const d1 = document.getElementById('date').value;
@@ -267,6 +495,7 @@
         const data = await r.json();
         horoBox.innerHTML = '<div class="horoscope">' + data.synastry + '</div>' + shareButtons();
         bindShare();
+        cacheSynastry();
       }
     } catch(e) {
       result.innerHTML = '<p class="muted">Произошла ошибка 😔 Проверьте названия городов.</p>';
@@ -281,10 +510,31 @@
       if (!el) return;
       if (f === 'zodiac') el.value = 'sidereal'; else el.value = '';
     });
+    toast('Поля очищены 🧹');
+  };
+  /* DEV-RESET START — удалить перед релизом */
+  var _dev = document.getElementById('devReset');
+  if (_dev) _dev.onclick = () => {
+    localStorage.removeItem('astrel_horo_cache');
+    localStorage.removeItem('astrel_horoscope');
+    localStorage.removeItem('astrel_horo_time');
+    localStorage.removeItem('astrel_syn_cache');
     document.getElementById('result').innerHTML = '';
     document.getElementById('horoscope').innerHTML = '';
-    toast('Данные очищены 🧹');
+    renderHistory();
+    renderSynHistory();
+    populateProfiles();
+    toast('История и кэш очищены 🧪');
   };
+  /* DEV-RESET END */
+  var _p1 = document.getElementById('prof1');
+  if (_p1) _p1.onchange = () => { applyProfile(1, decodeURIComponent(_p1.value || '')); toggleFields(1, !!_p1.value); };
+  var _p2 = document.getElementById('prof2');
+  if (_p2) _p2.onchange = () => { applyProfile(2, decodeURIComponent(_p2.value || '')); toggleFields(2, !!_p2.value); };
+  populateProfiles();
+  restoreHoroscope();
+  renderHistory();
+  renderSynHistory();
 </script>
 </body>
 </html>
