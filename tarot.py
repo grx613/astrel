@@ -88,7 +88,18 @@ async def generate_horoscope(name: str, natal: dict) -> str:
     )
     return response.choices[0].message.content
 
-async def generate_synastry(name1: str, natal1: dict, name2: str, natal2: dict) -> str:
+def format_scores(scores):
+    if not scores:
+        return ""
+    lines = ["РАСЧЁТ АСПЕКТОВ (опирайся на эти цифры, обязательно упомяни ключевые аспекты и углы в тексте):"]
+    for c in scores.get("criteria", []):
+        det = "; ".join(c.get("details", [])) or "явных аспектов нет"
+        lines.append("- %s %s: %d%% (%s)" % (c.get("emoji", ""), c.get("name", ""), c.get("score", 0), det))
+    lines.append("ОБЩАЯ СОВМЕСТИМОСТЬ: %d%% — %s" % (scores.get("overall", 0), scores.get("label", "")))
+    return "\n".join(lines) + "\n\n"
+
+
+async def generate_synastry(name1: str, natal1: dict, name2: str, natal2: dict, scores: dict = None) -> str:
     model, system_prompt = load_synastry_config()
     chart1 = format_chart(natal1)
     chart2 = format_chart(natal2)
@@ -99,6 +110,7 @@ async def generate_synastry(name1: str, natal1: dict, name2: str, natal2: dict) 
         f"ПАРТНЁР 2: {name2 or 'Второй партнёр'}\n"
         f"Солнце (тропик): {natal2.get('солнце_тропик', '')}\n"
         f"Карта:\n{chart2}\n\n"
+        f"{format_scores(scores)}"
         f"Сравни эти две карты и составь анализ совместимости (синастрию) по инструкции."
     )
     response = await client.chat.completions.create(
