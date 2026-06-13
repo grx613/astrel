@@ -74,6 +74,19 @@
   .score-fill { height:100%; background:linear-gradient(90deg,#ffd166,#ff9a66); border-radius:6px; transition:width .8s ease; }
   .score-val { flex:0 0 40px; text-align:right; font-size:13px; font-weight:700; color:#ffd166; }
   .score-q { cursor:help; opacity:.75; }
+
+  .celeb-intro { background:rgba(255,255,255,.08); border-radius:12px; padding:14px; margin:10px 0 14px; font-size:14px; line-height:1.45; }
+  .celeb-list { display:flex; flex-direction:column; gap:8px; margin-top:12px; }
+  .celeb-card { display:flex; align-items:center; gap:10px; background:rgba(255,255,255,.09); border:1px solid rgba(255,255,255,.10); border-radius:12px; padding:10px 12px; }
+  .celeb-card.top { background:rgba(255,209,102,.16); border-color:rgba(255,209,102,.38); }
+  .celeb-rank { flex:0 0 30px; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:rgba(255,209,102,.20); color:#ffd166; font-weight:800; font-size:13px; }
+  .celeb-main { flex:1; min-width:0; }
+  .celeb-name { font-weight:800; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .celeb-label { opacity:.78; font-size:12px; margin-top:2px; }
+  .celeb-pct { flex:0 0 58px; text-align:right; font-size:20px; font-weight:900; color:#ffd166; }
+  .celeb-progress { background:rgba(255,255,255,.08); border-radius:12px; padding:16px; text-align:center; line-height:1.45; }
+  .celeb-small { opacity:.75; font-size:12px; margin-top:8px; }
+
 </style>
 </head>
 <body>
@@ -83,6 +96,7 @@
     <div class="tabs">
       <div class="tab active" id="tab-horo">🔮 Личный гороскоп</div>
       <div class="tab" id="tab-syn">❤️ Совместимость</div>
+      <div class="tab" id="tab-celebs">😎 Селебы</div>
     </div>
     <div id="partner1-title" class="partner-title">Ваши данные</div>
     <div id="prof1-wrap">
@@ -486,11 +500,89 @@
     if (!r.ok) throw new Error();
     return await r.json();
   }
+
+  function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
+  function readCelebNatalCache() {
+    try { return JSON.parse(localStorage.getItem('astrel_celeb_natal_cache')) || {}; } catch(e) { return {}; }
+  }
+  function writeCelebNatalCache(c) {
+    try { localStorage.setItem('astrel_celeb_natal_cache', JSON.stringify(c)); } catch(e) {}
+  }
+  async function getCelebNatal(c, zodiac) {
+    const key = c.id + '|' + c.date + '|' + c.time + '|' + c.place + '|' + zodiac;
+    const cache = readCelebNatalCache();
+    if (cache[key] && cache[key].natal) return { natal: cache[key].natal, cached: true };
+    const natal = await fetchNatal(c.date, c.time, c.place, zodiac);
+    cache[key] = { natal, ts: Date.now() };
+    writeCelebNatalCache(cache);
+    return { natal, cached: false };
+  }
+  function celebsIntroHTML() {
+    return '<div class="celeb-intro"><strong>😎 Моя совместимость с селебами</strong><br>Выбери свой профиль или введи данные выше, затем нажми кнопку. Я прогоню тебя по списку известных персон и покажу рейтинг.</div>';
+  }
+  function celebTopHTML(items) {
+    items.sort((a,b) => (b.scores.overall || 0) - (a.scores.overall || 0));
+    let html = '<div class="horoscope">';
+    html += '<p><strong>Твой топ совместимости с селебами</strong></p>';
+    html += '<p>Я прогнал вашу карту по завидным женихам и невестам. Вот кто попал с вами в самый мощный резонанс.</p>';
+    html += '<div class="celeb-list">';
+    items.forEach((it, idx) => {
+      const top = idx < 3 ? ' top' : '';
+      const pct = it.scores.overall || 0;
+      const label = it.scores.label || '';
+      html += '<div class="celeb-card' + top + '"><div class="celeb-rank">' + (idx + 1) + '</div>';
+      html += '<div class="celeb-main"><div class="celeb-name">' + escapeHtml(it.celeb.name) + '</div><div class="celeb-label">' + escapeHtml(label) + '</div></div>';
+      html += '<div class="celeb-pct">' + pct + '%</div></div>';
+    });
+    html += '</div>';
+    html += '<p class="muted">Быстрый расчёт по аспектам, без длинного ИИ-разбора. Идеально для скрина 😎</p>';
+    html += '<p><em>Расчёт совместимости создан для развлечения и самопознания.</em></p></div>';
+    return html;
+  }
+  async function runCelebsTop(zodiac) {
+    const result = document.getElementById('result');
+    const horoBox = document.getElementById('horoscope');
+    const myName = document.getElementById('name').value || 'Вы';
+    const myDate = document.getElementById('date').value;
+    const myTime = document.getElementById('time').value;
+    const myPlace = document.getElementById('place').value;
+    if (!myDate || !myTime || !myPlace) {
+      result.innerHTML = '<p class="muted">Заполните свои данные или выберите профиль 🙏</p>';
+      return;
+    }
+    saveData();
+    horoBox.innerHTML = '';
+    result.innerHTML = loaderHTML('Считаю вашу карту', '😎');
+    const natal1 = await fetchNatal(myDate, myTime, myPlace, zodiac);
+    const items = [], failed = [];
+    await sleep(1200);
+    for (let i = 0; i < CELEBS.length; i++) {
+      const c = CELEBS[i];
+      result.innerHTML = '<div class="celeb-progress"><strong>Считаю ' + (i + 1) + '/' + CELEBS.length + ': ' + escapeHtml(c.name) + '</strong><div class="celeb-small">Первый запуск может быть долгим — карты сохраняются в кэш.</div></div>';
+      try {
+        const got = await getCelebNatal(c, zodiac);
+        const sr = await fetch('/synastry/scores', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name1: myName, natal1, name2: c.name, natal2: got.natal }) });
+        const sd = await sr.json();
+        if (sd && sd.scores) items.push({ celeb: c, scores: sd.scores });
+        if (!got.cached) await sleep(1200);
+      } catch(innerErr) {
+        failed.push(c.name);
+        await sleep(300);
+      }
+    }
+    if (!items.length) { result.innerHTML = '<p class="muted">Не удалось посчитать 😔 Проверьте данные.</p>'; return; }
+    result.innerHTML = singleTable(natal1);
+    horoBox.innerHTML = celebTopHTML(items) + shareButtons();
+    bindShare();
+    if (failed.length) toast('Не все селебы посчитались: ' + failed.length + ' 😅');
+  }
+
   let mode = 'horo';
   document.getElementById('tab-horo').onclick = () => {
     mode = 'horo';
     document.getElementById('tab-horo').classList.add('active');
     document.getElementById('tab-syn').classList.remove('active');
+    document.getElementById('tab-celebs').classList.remove('active');
     document.getElementById('partner2-fields').style.display = 'none';
     document.getElementById('partner1-title').style.display = 'none';
     document.getElementById('prof1-wrap').style.display = 'block';
@@ -507,6 +599,7 @@
     mode = 'syn';
     document.getElementById('tab-syn').classList.add('active');
     document.getElementById('tab-horo').classList.remove('active');
+    document.getElementById('tab-celebs').classList.remove('active');
     document.getElementById('partner2-fields').style.display = 'block';
     document.getElementById('partner1-title').style.display = 'block';
     document.getElementById('prof1-wrap').style.display = 'block';
@@ -518,12 +611,29 @@
     renderSynHistory();
     resetProfilePickers();
   };
+  document.getElementById('tab-celebs').onclick = () => {
+    mode = 'celebs';
+    document.getElementById('tab-celebs').classList.add('active');
+    document.getElementById('tab-horo').classList.remove('active');
+    document.getElementById('tab-syn').classList.remove('active');
+    document.getElementById('partner2-fields').style.display = 'none';
+    document.getElementById('partner1-title').style.display = 'block';
+    document.getElementById('prof1-wrap').style.display = 'block';
+    document.getElementById('btn').innerText = '🚀 Найти мой топ';
+    document.getElementById('result').innerHTML = celebsIntroHTML();
+    document.getElementById('horoscope').innerHTML = '';
+    renderHistory();
+    renderSynHistory();
+    populateProfiles();
+    resetProfilePickers();
+  };
   const btn = document.getElementById('btn');
   btn.onclick = async () => {
     const zodiac = document.getElementById('zodiac').value;
     const result = document.getElementById('result');
     const horoBox = document.getElementById('horoscope');
     btn.disabled = true; horoBox.innerHTML = '';
+    if (mode === 'celebs') { try { await runCelebsTop(zodiac); } catch(e) { document.getElementById('result').innerHTML = '<p class="muted">Ошибка расчёта 😔</p>'; } btn.disabled = false; return; }
     try {
       if (mode === 'horo') {
         const sig = horoSig();
