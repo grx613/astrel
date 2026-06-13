@@ -135,10 +135,14 @@
     <button id="devReset" class="clear-btn" style="margin-top:8px;background:rgba(255,80,80,.25);border:1px solid rgba(255,120,120,.5);">🧪 Сброс истории и кэша (тест)</button>
     <!-- DEV-RESET END -->
   </div>
+  <footer style='text-align:center;padding:18px 12px 24px;font-size:13px;color:#9a8fb5;'>
+    <a id='dev-blog-link' href='https://t.me/bothub_founder' target='_blank' rel='noopener' style='color:#b388ff;text-decoration:none;'>📣 Блог разработчика</a>
+  </footer>
   <div id="toast" class="toast"></div>
 <script>
   const bridge = window.vkBridge;
   if (bridge) { bridge.send('VKWebAppInit'); }
+  (function(){var _bl=document.getElementById('dev-blog-link');if(_bl){_bl.addEventListener('click',function(ev){if(typeof bridge!=='undefined'&&bridge&&bridge.isEmbedded&&bridge.isEmbedded()){ev.preventDefault();bridge.send('VKWebAppOpenLink',{url:_bl.href});}});}})();
   const APP_LINK = 'https://vk.com/app54633941';
   const fields = ['name','date','time','place','zodiac','name2','date2','time2','place2'];
   function loadSaved() {
@@ -522,6 +526,80 @@
   function celebsIntroHTML() {
     return '<div class="celeb-intro"><strong>😎 Моя совместимость с селебами</strong><br>Выбери свой профиль или введи данные выше, затем нажми кнопку. Я прогоню тебя по списку известных персон и покажу рейтинг.</div>';
   }
+  // ===== МЕМ-КАРТОЧКА (топ селеб) =====
+  function _astrelRoundRect(ctx,x,y,w,h,r){
+    if(ctx.roundRect){ctx.beginPath();ctx.roundRect(x,y,w,h,r);return;}
+    ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+  }
+  function _fitFont(ctx,text,maxW,weight,startPx,minPx){
+    var px=startPx; ctx.font=weight+px+'px sans-serif';
+    while(ctx.measureText(text).width>maxW && px>minPx){px-=2;ctx.font=weight+px+'px sans-serif';}
+    return px;
+  }
+  function buildCelebMemeDataURL(){
+    const items=(window.__celebItems||[]).slice(0,5);
+    if(!items.length) return '';
+    const W=1080,H=1920;
+    const cv=document.createElement('canvas');cv.width=W;cv.height=H;
+    const ctx=cv.getContext('2d');
+    const g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#1b1036');g.addColorStop(1,'#3a1d6e');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+    ctx.textAlign='center';
+    ctx.fillStyle='#ffffff';ctx.font='bold 76px sans-serif';
+    ctx.fillText('Мой топ совместимости',W/2,180);
+    const myName=(document.getElementById('name').value||'Вы');
+    ctx.fillStyle='#c9b8ff';ctx.font='42px sans-serif';
+    ctx.fillText('по натальной карте • '+myName,W/2,250);
+    let y=400;
+    items.forEach((it,idx)=>{
+      const pct=it.scores.overall||0;
+      const name=it.celeb.name;
+      const big=idx===0;
+      const rowH=big?320:210;
+      ctx.fillStyle=big?'rgba(255,255,255,0.16)':'rgba(255,255,255,0.07)';
+      _astrelRoundRect(ctx,70,y,W-140,rowH-30,30);ctx.fill();
+      ctx.textAlign='left';
+      ctx.fillStyle=big?'#ffd24a':'#ffffff';
+      ctx.font='bold '+(big?96:56)+'px sans-serif';
+      ctx.fillText('#'+(idx+1),110,y+(big?175:120));
+      ctx.fillStyle='#ffffff';
+      var _w=(big?'bold ':'');
+      var _np=_fitFont(ctx,name,(big?340:470),_w,(big?56:44),26);
+      ctx.font=_w+_np+'px sans-serif';
+      ctx.fillText(name,300,y+(big?125:95));
+      if(big){ctx.fillStyle='#c9b8ff';ctx.font='34px sans-serif';ctx.fillText(it.scores.label||'',300,y+195);}
+      ctx.textAlign='right';
+      ctx.fillStyle=big?'#7CFC9B':'#9be8ad';
+      ctx.font='bold '+(big?108:66)+'px sans-serif';
+      ctx.fillText(pct+'%',W-110,y+(big?175:125));
+      y+=rowH;
+    });
+    ctx.textAlign='center';
+    ctx.fillStyle='#c9b8ff';ctx.font='40px sans-serif';
+    ctx.fillText('Астрель — гороскоп и совместимость',W/2,H-90);
+    return cv.toDataURL('image/png');
+  }
+  function celebMemeBtnHTML(){
+    return '<div style="text-align:center;margin:14px 0;">'
+      +'<button id="celeb-meme-btn" style="background:linear-gradient(135deg,#7c4dff,#b388ff);color:#fff;border:none;border-radius:14px;padding:12px 22px;font-size:16px;font-weight:600;cursor:pointer;">📸 Сделать картинку-мем</button>'
+      +'<div id="celeb-meme-preview" style="margin-top:12px;"></div></div>';
+  }
+  async function shareCelebMeme(){
+    const url=buildCelebMemeDataURL();
+    if(!url){ if(typeof toast==='function') toast('Нет данных для карточки 😔'); return; }
+    const prev=document.getElementById('celeb-meme-preview');
+    if(prev){
+      prev.innerHTML='<img src="'+url+'" alt="Мой топ" style="max-width:100%;border-radius:16px;display:block;margin:0 auto;">'
+        +'<div style="font-size:13px;color:#999;margin-top:8px;">Зажми картинку, чтобы сохранить 👆</div>'
+        +'<div style="margin-top:8px;"><a href="'+url+'" download="astrel-top.png" style="color:#b388ff;font-weight:600;">⬇️ Скачать PNG</a></div>';
+    }
+    try{
+      if(typeof bridge!=='undefined' && bridge && bridge.isEmbedded && bridge.isEmbedded()){
+        await bridge.send('VKWebAppShowStoryBox',{ background_type:'image', blob:url });
+      }
+    }catch(e){}
+  }
   function celebTopHTML(items) {
     items.sort((a,b) => (b.scores.overall || 0) - (a.scores.overall || 0));
     let html = '<div class="horoscope">';
@@ -574,8 +652,10 @@
     }
     if (!items.length) { result.innerHTML = '<p class="muted">Не удалось посчитать 😔 Проверьте данные.</p>'; return; }
     result.innerHTML = singleTable(natal1);
-    horoBox.innerHTML = celebTopHTML(items) + shareButtons();
+    window.__celebItems = items;
+    horoBox.innerHTML = celebTopHTML(items) + celebMemeBtnHTML() + shareButtons();
     bindShare();
+    var _mb = document.getElementById('celeb-meme-btn'); if (_mb) _mb.onclick = shareCelebMeme;
     if (failed.length) toast('Не все селебы посчитались: ' + failed.length + ' 😅');
   }
 
