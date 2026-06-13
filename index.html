@@ -64,6 +64,16 @@
   .hist-list { display:flex; flex-wrap:wrap; gap:8px; }
   .hist-item { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,209,102,.3); border-radius:16px; padding:6px 12px; font-size:13px; cursor:pointer; transition:.15s; }
   .hist-item:hover { background:rgba(255,209,102,.25); color:#ffd166; }
+  .scorebox { margin:14px 0 4px; }
+  .score-overall { text-align:center; margin-bottom:14px; }
+  .score-pct { font-size:38px; font-weight:800; color:#ffd166; line-height:1; }
+  .score-label { font-size:14px; opacity:.9; margin-top:4px; }
+  .score-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .score-name { flex:0 0 132px; font-size:13px; display:flex; align-items:center; gap:4px; }
+  .score-bar { flex:1; height:10px; background:rgba(255,255,255,.12); border-radius:6px; overflow:hidden; }
+  .score-fill { height:100%; background:linear-gradient(90deg,#ffd166,#ff9a66); border-radius:6px; transition:width .8s ease; }
+  .score-val { flex:0 0 40px; text-align:right; font-size:13px; font-weight:700; color:#ffd166; }
+  .score-q { cursor:help; opacity:.75; }
 </style>
 </head>
 <body>
@@ -219,6 +229,19 @@
   }
   function escapeHtml(t) {
     return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function scoresHTML(sc) {
+    if (!sc || !sc.criteria) return '';
+    let h = '<div class="scorebox"><div class="score-overall"><div class="score-pct">' + sc.overall + '%</div><div class="score-label">' + escapeHtml(sc.label) + '</div></div>';
+    sc.criteria.forEach(c => {
+      const tip = (c.details && c.details.length) ? c.details.join(' • ') : 'Явных аспектов нет — нейтрально';
+      h += '<div class="score-row">'
+        + '<div class="score-name">' + c.emoji + ' ' + c.name + ' <span class="badge tip score-q" data-tip="' + escapeHtml(tip) + '">?</span></div>'
+        + '<div class="score-bar"><div class="score-fill" style="width:' + c.score + '%"></div></div>'
+        + '<div class="score-val">' + c.score + '%</div></div>';
+    });
+    h += '</div>';
+    return h;
   }
   function renderHistory() {
     const box = document.getElementById('history');
@@ -493,7 +516,7 @@
         horoBox.innerHTML = loaderHTML('Анализирую совместимость', '❤️');
         const r = await fetch('/synastry', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name1:n1name, natal1, name2:n2name, natal2 }) });
         const data = await r.json();
-        horoBox.innerHTML = '<div class="horoscope">' + data.synastry + '</div>' + shareButtons();
+        horoBox.innerHTML = scoresHTML(data.scores) + '<div class="horoscope">' + data.synastry + '</div>' + shareButtons();
         bindShare();
         cacheSynastry();
       }

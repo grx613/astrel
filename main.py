@@ -113,8 +113,97 @@ async def horoscope(payload: HoroscopeIn):
     text = await generate_horoscope(payload.name, payload.natal)
     return {"horoscope": text}
 
+def _lon(natal, key):
+    obj = natal.get("асцендент") if key == "асцендент" else (natal.get("планеты") or {}).get(key)
+    if not obj:
+        return None
+    try:
+        return SIGNS.index(obj["знак"]) * 30 + float(obj["градус"])
+    except (ValueError, KeyError, TypeError):
+        return None
+
+_ASPECTS = [("соединение", 0, 8), ("секстиль", 60, 6), ("квадрат", 90, 7), ("трин", 120, 8), ("оппозиция", 180, 8)]
+_HARM = {"соединение": 0.8, "секстиль": 0.7, "трин": 1.0, "квадрат": -0.6, "оппозиция": -0.4}
+_HARM_HOT = {"соединение": 0.9, "секстиль": 0.6, "трин": 0.6, "квадрат": 0.8, "оппозиция": 0.7}
+
+_CRITERIA = [
+    ("Эмоции", "💗", [("Луна", "Луна"), ("Луна", "Венера"), ("Луна", "Солнце")], False, 1.2),
+    ("Интеллект", "🧠", [("Меркурий", "Меркурий"), ("Меркурий", "асцендент"), ("Меркурий", "Юпитер")], False, 1.0),
+    ("Секс", "🔥", [("Марс", "Венера"), ("Марс", "Марс"), ("Венера", "Плутон")], True, 1.0),
+    ("Деньги", "💰", [("Венера", "Юпитер"), ("Юпитер", "Солнце"), ("Юпитер", "Сатурн")], False, 0.9),
+    ("Стабильность", "🏠", [("Сатурн", "Солнце"), ("Сатурн", "Луна"), ("Солнце", "Солнце")], False, 1.1),
+]
+
+def _aspect(l1, l2):
+    if l1 is None or l2 is None:
+        return None
+    diff = abs(l1 - l2) % 360
+    if diff > 180:
+        diff = 360 - diff
+    best = None
+    for name, angle, orb in _ASPECTS:
+        dev = abs(diff - angle)
+        if dev <= orb and (best is None or dev < best[2]):
+            best = (name, angle, dev, orb)
+    return best
+
+def _pair_contrib(n1, n2, a, b, hot):
+    harm = _HARM_HOT if hot else _HARM
+    asps = [_aspect(_lon(n1, a), _lon(n2, b))]
+    if a != b:
+        asps.append(_aspect(_lon(n1, b), _lon(n2, a)))
+    contribs, best_detail, best_strength = [], None, -1
+    for asp in asps:
+        if asp is None:
+            contribs.append(0.0)
+            continue
+        name, angle, dev, orb = asp
+        orb_factor = 1 - dev / orb
+        c = harm.get(name, 0) * orb_factor
+        contribs.append(c)
+        if orb_factor > best_strength:
+            best_strength, best_detail = orb_factor, (name, angle, c)
+    contrib = sum(contribs) / len(contribs) if contribs else 0.0
+    detail = None
+    if best_detail:
+        name, angle, c = best_detail
+        if hot and c > 0 and name in ("квадрат", "оппозиция"):
+            kind = "страсть 🔥"
+        else:
+            kind = "гармония" if c > 0 else "напряжение"
+        detail = "%s ↔ %s: %s %d° — %s" % (a, b, name, angle, kind)
+    return contrib, detail
+
+def synastry_scores(n1, n2):
+    out, total_w, total_s = [], 0.0, 0.0
+    for name, emoji, pairs, hot, weight in _CRITERIA:
+        contribs, details = [], []
+        for a, b in pairs:
+            c, d = _pair_contrib(n1, n2, a, b, hot)
+            contribs.append(c)
+            if d:
+                details.append(d)
+        avg = sum(contribs) / len(contribs) if contribs else 0.0
+        score = max(5, min(95, round(50 + avg * 45)))
+        out.append({"name": name, "emoji": emoji, "score": score, "details": details})
+        total_s += score * weight
+        total_w += weight
+    overall = round(total_s / total_w) if total_w else 50
+    if overall >= 85:
+        label = "космическая связь ✨"
+    elif overall >= 70:
+        label = "стоит присмотреться ⭐"
+    elif overall >= 55:
+        label = "есть потенциал 🌱"
+    elif overall >= 40:
+        label = "придётся поработать 🛠️"
+    else:
+        label = "непростой союз ⚡"
+    return {"overall": overall, "label": label, "criteria": out}
+
 @app.post("/synastry")
 async def synastry(payload: SynastryIn):
     if not payload.natal1 or not payload.natal2: return {"error": "Нет данных карт"}
     text = await generate_synastry(payload.name1, payload.natal1, payload.name2, payload.natal2)
-    return {"synastry": text}
+    scores = synastry_scores(payload.natal1, payload.natal2)
+    return {"synastry": text, "scores": scores}
