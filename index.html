@@ -556,19 +556,23 @@
       const pct=it.scores.overall||0;
       const name=it.celeb.name;
       const big=idx===0;
+      var _emoji='',_clean=name,_cp=name.codePointAt(0);
+      if(_cp>=0x2190||_cp>=0xD800){var _sp=name.indexOf(' ');if(_sp>0){_emoji=name.slice(0,_sp);_clean=name.slice(_sp+1);}}
+      var _cx=(big?320:300),_r=(big?78:58),_cy=y+(big?130:82),_nx=_cx+_r+(big?34:28);
       const rowH=big?320:210;
       ctx.fillStyle=big?'rgba(255,255,255,0.16)':'rgba(255,255,255,0.07)';
       _astrelRoundRect(ctx,70,y,W-140,rowH-30,30);ctx.fill();
+      ctx.save();ctx.beginPath();ctx.arc(_cx,_cy,_r,0,Math.PI*2);var _pal=['#ffd24a','#ff6b9d','#7c4dff','#4dd0e1','#81c784'];ctx.fillStyle=_pal[idx%_pal.length];ctx.fill();ctx.lineWidth=4;ctx.strokeStyle='rgba(255,255,255,0.55)';ctx.stroke();ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=(idx===0?'#1b1036':'#ffffff');ctx.font=Math.round(_r*(_emoji?1.15:1.0))+'px sans-serif';ctx.fillText(_emoji||(_clean.charAt(0)||'?').toUpperCase(),_cx,_cy+(_emoji?6:4));ctx.restore();
       ctx.textAlign='left';
       ctx.fillStyle=big?'#ffd24a':'#ffffff';
       ctx.font='bold '+(big?96:56)+'px sans-serif';
       ctx.fillText('#'+(idx+1),110,y+(big?175:120));
       ctx.fillStyle='#ffffff';
       var _w=(big?'bold ':'');
-      var _np=_fitFont(ctx,name,(big?340:470),_w,(big?56:44),26);
+      var _np=_fitFont(ctx,_clean,(big?310:400),_w,(big?56:44),26);
       ctx.font=_w+_np+'px sans-serif';
-      ctx.fillText(name,300,y+(big?125:95));
-      if(big){ctx.fillStyle='#c9b8ff';ctx.font='34px sans-serif';ctx.fillText(it.scores.label||'',300,y+195);}
+      ctx.fillText(_clean,_nx,y+(big?125:95));
+      if(big){ctx.fillStyle='#c9b8ff';ctx.font='34px sans-serif';ctx.fillText(it.scores.label||'',_nx,y+195);}
       ctx.textAlign='right';
       ctx.fillStyle=big?'#7CFC9B':'#9be8ad';
       ctx.font='bold '+(big?108:66)+'px sans-serif';
