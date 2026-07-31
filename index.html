@@ -132,7 +132,7 @@
     <div id="history" class="history"></div>
     <div id="synHistory" class="history"></div>
     <!-- DEV-RESET START (временная кнопка для тестов — удалить перед релизом) -->
-    <button id="devReset" class="clear-btn" style="margin-top:8px;background:rgba(255,80,80,.25);border:1px solid rgba(255,120,120,.5);">🧪 Сброс истории и кэша (тест)</button>
+    <button id="devReset" class="clear-btn" style="display:none;margin-top:8px;background:rgba(255,80,80,.25);border:1px solid rgba(255,120,120,.5);">🧪 Сброс истории и кэша (тест)</button>
     <!-- DEV-RESET END -->
   </div>
   <footer style='text-align:center;padding:18px 12px 24px;font-size:13px;color:#9a8fb5;'>
@@ -791,6 +791,7 @@
   };
   /* DEV-RESET START — удалить перед релизом */
   var _dev = document.getElementById('devReset');
+  try { if (_dev && new URLSearchParams(location.search).get('vk_app_id') === '54634753') _dev.style.display = 'block'; } catch (e) {}
   if (_dev) _dev.onclick = () => {
     localStorage.removeItem('astrel_horo_cache');
     localStorage.removeItem('astrel_horoscope');
