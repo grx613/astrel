@@ -791,7 +791,7 @@
   };
   /* DEV-RESET START — удалить перед релизом */
   var _dev = document.getElementById('devReset');
-  try { if (_dev && new URLSearchParams(location.search).get('vk_app_id') === '54634753') _dev.style.display = 'block'; } catch (e) {}
+  try { if (_dev && /^stage\./.test(location.hostname)) _dev.style.display = 'block'; } catch (e) {}
   if (_dev) _dev.onclick = () => {
     localStorage.removeItem('astrel_horo_cache');
     localStorage.removeItem('astrel_horoscope');
